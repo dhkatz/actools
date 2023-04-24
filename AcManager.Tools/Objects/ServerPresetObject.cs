@@ -248,6 +248,7 @@ namespace AcManager.Tools.Objects {
                     .Where(x => x?.Length == 2).Select(x => SetupItem.Create(x[1], x[0].As(false))).NonNull());
 
             var ftp = ini["FTP"];
+            FtpProtocol = ftp.GetIntEnum("PROTOCOL", ServerPresetFtpProtocol.Ftp);
             FtpHost = ftp.GetNonEmpty("HOST");
             FtpLogin = ftp.GetNonEmpty("LOGIN");
             FtpDirectory = ftp.GetNonEmpty("FOLDER");
@@ -389,6 +390,7 @@ namespace AcManager.Tools.Objects {
             }
 
             var ftp = ini["FTP"];
+            ftp.Set("PROTOCOL", FtpProtocol);
             ftp.Set("HOST", FtpHost);
             ftp.Set("LOGIN", FtpLogin);
             ftp.Set("FOLDER", FtpDirectory);

@@ -1161,6 +1161,23 @@ namespace AcManager.Tools.Objects {
         #endregion
 
         #region Advanced
+
+        private ServerPresetFtpProtocol _ftpProtocol;
+
+        public ServerPresetFtpProtocol FtpProtocol {
+            get => _ftpProtocol;
+            set {
+                if (Equals(value, _ftpProtocol)) return;
+                _ftpProtocol = value;
+                if (Loaded) {
+                    OnPropertyChanged();
+                    _ftpVerifyConnectionCommand?.RaiseCanExecuteChanged();
+                    _ftpUploadContentCommand?.RaiseCanExecuteChanged();
+                    Changed = true;
+                }
+            }
+        }
+        
         private string _ftpHost;
 
         public string FtpHost {

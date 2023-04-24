@@ -40,6 +40,20 @@ namespace AcManager.Tools.Objects {
         Linux64 = 2,
     }
 
+    public enum ServerPresetFtpProtocol {
+        [Description("FTP")]
+        Ftp = 0,
+        
+        [Description("SFTP")]
+        Sftp = 1,
+        
+        [Description("FTPS (Explicit)")]
+        FtpsExplicit = 2,
+        
+        [Description("FTPS (Implicit)")]
+        FtpsImplicit = 3,
+    }
+
     public partial class ServerPresetObject {
         private static readonly string[] TrackDataToKeep = {
             @"surfaces.ini", @"drs_zones.ini"

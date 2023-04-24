@@ -83,6 +83,8 @@ namespace AcManager.Pages.ServerPreset {
 
         public partial class ViewModel : SelectedAcObjectViewModel<ServerPresetObject> {
             public QuickDriveButtonModel QuickDriveButton { get; }
+            
+            public ServerPresetFtpProtocol[] FtpProtocols { get; } = EnumExtension.GetValues<ServerPresetFtpProtocol>();
 
             public ServerPresetPackMode[] Modes { get; } = EnumExtension.GetValues<ServerPresetPackMode>();
 
