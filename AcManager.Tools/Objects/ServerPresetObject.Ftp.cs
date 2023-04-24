@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using AcManager.Tools.Helpers;
+using AcManager.Tools.Helpers.Ftp;
 using AcTools.Utils.Helpers;
 using FirstFloor.ModernUI.Commands;
 using FirstFloor.ModernUI.Dialogs;
@@ -16,10 +17,9 @@ using FirstFloor.ModernUI.Windows.Controls;
 
 namespace AcManager.Tools.Objects {
     public partial class ServerPresetObject {
-        private FtpClient CreateFtpClient() {
-            return new FtpClient($@"ftp://{FtpHost}/", FtpLogin, FtpPassword) {
-                Timeout = TimeSpan.FromSeconds(15)
-            };
+        private FtpClient CreateFtpClient()
+        {
+            return new WinScpClient($@"{FtpProtocol}://{FtpHost}/", FtpLogin, FtpPassword);
         }
 
         private AsyncCommand<CancellationToken?> _ftpVerifyConnectionCommand;

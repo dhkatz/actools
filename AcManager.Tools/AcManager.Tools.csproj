@@ -93,6 +93,9 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="WinSCPnet, Version=1.12.0.13000, Culture=neutral, PublicKeyToken=2271ec4a3c56d0bf, processorArchitecture=MSIL">
+      <HintPath>..\packages\WinSCP.5.21.8\lib\net40\WinSCPnet.dll</HintPath>
+    </Reference>
     <Reference Include="xxHashSharp, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\packages\xxHashSharp.1.0.0\lib\net45\xxHashSharp.dll</HintPath>
       <Private>True</Private>
@@ -421,6 +424,10 @@
     <Compile Include="Helpers\DirectInput\KeyHelper.cs" />
     <Compile Include="Helpers\FaultTolerantHeapFix.cs" />
     <Compile Include="Helpers\FaviconProvider.cs" />
+    <Compile Include="Helpers\Ftp\DetailedInformation.cs" />
+    <Compile Include="Helpers\Ftp\BasicFtpClient.cs" />
+    <Compile Include="Helpers\Ftp\FtpClient.cs" />
+    <Compile Include="Helpers\Ftp\WinScpClient.cs" />
     <Compile Include="Helpers\ISaveHelper.cs" />
     <Compile Include="Helpers\LazierCached.cs" />
     <Compile Include="Helpers\Loaders\ICmRequestHandler.cs" />
@@ -443,7 +450,6 @@
     <Compile Include="Helpers\DirectInput\DisplayInputParams.cs" />
     <Compile Include="Helpers\DirectInput\IDirectInputDevice.cs" />
     <Compile Include="Helpers\DirectInput\PlaceholderInputDevice.cs" />
-    <Compile Include="Helpers\FtpClient.cs" />
     <Compile Include="Helpers\IconManager.cs" />
     <Compile Include="Helpers\IndexDirectDownloader.cs" />
     <Compile Include="Helpers\AcContext.cs" />
@@ -894,4 +900,11 @@
     <PostBuildEvent>
     </PostBuildEvent>
   </PropertyGroup>
+  <Import Project="..\packages\WinSCP.5.21.8\build\WinSCP.targets" Condition="Exists('..\packages\WinSCP.5.21.8\build\WinSCP.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105.The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\WinSCP.5.21.8\build\WinSCP.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinSCP.5.21.8\build\WinSCP.targets'))" />
+  </Target>
 </Project>
