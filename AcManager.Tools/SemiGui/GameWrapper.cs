@@ -236,7 +236,7 @@ namespace AcManager.Tools.SemiGui {
             properties.SetAdditional(new CarRaceTextures());
 
             if (PatchHelper.GetInstalledVersion() != null) {
-                properties.SetAdditional(new AcPatchTrackOutline());
+                // properties.SetAdditional(new AcPatchTrackOutline());
             }
 
             properties.SetAdditional(new ExtraHotkeysRaceHelper());
@@ -321,6 +321,7 @@ namespace AcManager.Tools.SemiGui {
 
                 try {
                     FileUtils.TryToDelete(AcPaths.GetLogFilename());
+                    PatchHelper.PatchASmallIssue();
 
                     Game.Result result;
                     using (ReplaysExtensionSetter.OnlyNewIfEnabled())
@@ -330,7 +331,7 @@ namespace AcManager.Tools.SemiGui {
                         if (mode == GameMode.Race) {
                             properties.SetAdditional(new RaceCommandExecutor(properties));
                             properties.SetAdditional(new DBoxIntegration());
-                            if (SettingsHolder.Drive.ContinueOnEscape) {
+                            if (SettingsHolder.Drive.ContinueOnEscape && PatchHelper.IsFeatureSupported(@"$disabled")) {
                                 properties.SetAdditional(new ContinueRaceHelper());
                             }
                         } else if (mode == GameMode.Replay) {

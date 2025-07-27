@@ -10,6 +10,7 @@ using AcManager.Tools.AcObjectsNew;
 using AcManager.Tools.Data;
 using AcManager.Tools.Helpers;
 using AcManager.Tools.Managers;
+using AcManager.Tools.Managers.Online;
 using AcTools.DataFile;
 using AcTools.Processes;
 using AcTools.Utils;
@@ -42,6 +43,8 @@ namespace AcManager.Tools.Objects {
             PluginEntries.CollectionChanged += OnPluginEntriesCollectionChanged;
             PluginEntries.ItemPropertyChanged += OnPluginEntriesPropertyChanged;
             CmPluginLiveConditionsParams.PropertyChanged += (sender, args) => Changed = true;
+            
+            ThirdPartyOnlineSourcesManager.Instance.Initialize();
         }
 
         protected override IniFileMode IniFileMode => IniFileMode.ValuesWithSemicolons;
@@ -125,8 +128,6 @@ namespace AcManager.Tools.Objects {
                     .ToString().GetChecksum();
         }
 
-        public const string EncodeSymbols = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
-
         protected override void LoadData(IniFile ini) {
             foreach (var session in Sessions) {
                 session.Load(ini);
@@ -141,6 +142,7 @@ namespace AcManager.Tools.Objects {
             Password = section.GetNonEmpty("PASSWORD");
             AdminPassword = section.GetNonEmpty("ADMIN_PASSWORD");
             ShowOnLobby = section.GetBool("REGISTER_TO_LOBBY", true);
+            ShowOnCmLobby = cmSection.GetBool("REGISTER_TO_CM_LOBBY", ShowOnLobby);
             DisableChecksums = cmSection.GetBool("DISABLE_CHECKSUMS", false);
             LoopMode = section.GetBool("LOOP_MODE", true);
             PickupMode = section.GetBool("PICKUP_MODE_ENABLED", true);
@@ -167,10 +169,7 @@ namespace AcManager.Tools.Objects {
             } else if (trackIdPieces.Length == 3) {
                 CspRequired = true;
                 RequiredCspVersion = trackIdPieces[0].As<int?>();
-                var value = EncodeSymbols.IndexOf(trackIdPieces[1].FirstOrDefault());
-                CspExtendedCarsPhysics = (value & 1) == 1;
-                CspExtendedTrackPhysics = (value & 2) == 2;
-                CspHidePitCrew = (value & 4) == 4;
+                ApplyFlags(DecodeFlagsCompact(trackIdPieces[1]));
             } else {
                 CspRequired = false;
                 RequiredCspVersion = null;
@@ -270,6 +269,43 @@ namespace AcManager.Tools.Objects {
             LoadEntryListData(IniFile.Empty);
         }
 
+        private const string EncodeSymbolsInner = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+
+        private static string EncodeFlagsCompact(ulong flags) {
+            var r = "";
+            do {
+                r += EncodeSymbolsInner[(int)(flags % (ulong)EncodeSymbolsInner.Length)];
+                flags /= (ulong)EncodeSymbolsInner.Length;
+            } while (flags > 0);
+            return r;
+        }
+
+        public static ulong DecodeFlagsCompact(string flags) {
+            var r = 0UL;
+            for (var i = flags.Length; i > 0; i--) {
+                r = r * (ulong)EncodeSymbolsInner.Length + (ulong)EncodeSymbolsInner.IndexOf(flags[i - 1]);
+            }
+            return r;
+        }
+
+        private ulong ApplyFlags(ulong flags) {
+            CspExtendedCarsPhysics = (flags & 1UL) != 0UL;
+            CspExtendedTrackPhysics = (flags & 2UL) != 0UL;
+            CspHidePitCrew = (flags & 4UL) != 0UL;
+            CspIcePhysics = (flags & 8UL) != 0UL;
+            return flags;
+        }
+
+        private ulong CollectFlags() {
+            // Note: CSP builds can’t handle flag 32UL or above!
+            ulong flags = 0UL;
+            if (CspExtendedCarsPhysics) flags |= 1UL;
+            if (CspExtendedTrackPhysics) flags |= 2UL;
+            if (CspHidePitCrew) flags |= 4UL;
+            if (CspIcePhysics) flags |= 8UL;
+            return flags;
+        }
+
         protected override void SaveData(IniFile ini) {
             foreach (var session in Sessions) {
                 session.Save(ini);
@@ -282,6 +318,7 @@ namespace AcManager.Tools.Objects {
             section.Set("ADMIN_PASSWORD", AdminPassword);
             section.Set("REGISTER_TO_LOBBY", ShowOnLobby);
             cmSection.Set("DISABLE_CHECKSUMS", DisableChecksums);
+            cmSection.Set("REGISTER_TO_CM_LOBBY", ShowOnCmLobby);
             section.Set("LOOP_MODE", LoopMode);
             section.Set("PICKUP_MODE_ENABLED", PickupMode);
             section.Set("LOCKED_ENTRY_LIST", PickupModeLockedEntryList);
@@ -296,7 +333,7 @@ namespace AcManager.Tools.Objects {
 
             var extraTweaks = "";
             if ((CspExtendedCarsPhysics || CspExtendedTrackPhysics || CspHidePitCrew) && RequiredCspVersion >= 2000) {
-                extraTweaks = $@"{EncodeSymbols[(CspExtendedCarsPhysics ? 1 : 0) | (CspExtendedTrackPhysics ? 2 : 0) | (CspHidePitCrew ? 4 : 0)]}/../";
+                extraTweaks = $@"{EncodeFlagsCompact(CollectFlags())}/../";
             }
 
             section.Set("TRACK",

@@ -11,4 +11,6 @@ namespace AcManager.Tools.AcPlugins.CspCommands {
             return 2;
         }
     }
+    
+    // Command to test signature.
 }

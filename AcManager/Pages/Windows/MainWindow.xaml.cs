@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -19,6 +20,7 @@ using AcManager.Controls.Presentation;
 using AcManager.Controls.QuickSwitches;
 using AcManager.Controls.UserControls;
 using AcManager.Controls.ViewModels;
+using AcManager.CustomShowroom;
 using AcManager.DiscordRpc;
 using AcManager.Internal;
 using AcManager.Pages.Dialogs;
@@ -44,6 +46,7 @@ using FirstFloor.ModernUI.Commands;
 using FirstFloor.ModernUI.Dialogs;
 using FirstFloor.ModernUI.Helpers;
 using FirstFloor.ModernUI.Presentation;
+using FirstFloor.ModernUI.Serialization;
 using FirstFloor.ModernUI.Windows.Controls;
 using FirstFloor.ModernUI.Windows.Media;
 using FirstFloor.ModernUI.Windows.Navigation;
@@ -141,7 +144,7 @@ namespace AcManager.Pages.Windows {
                         new KeyGesture(Key.F1, ModifierKeys.Alt)),
                 new InputBinding(new NavigateCommand(this, new Uri("/Pages/AcSettings/AcSettingsPage.xaml", UriKind.Relative)),
                         new KeyGesture(Key.F2, ModifierKeys.Alt)),
-                new InputBinding(new NavigateCommand(this, new Uri("/Pages/Settings/PythonAppsSettings.xaml", UriKind.Relative)),
+                new InputBinding(new NavigateCommand(this, new Uri("/Pages/Settings/SettingsShadersPatch.xaml", UriKind.Relative)),
                         new KeyGesture(Key.F3, ModifierKeys.Alt)),
             }.NonNull().ToList());
 
@@ -204,6 +207,7 @@ namespace AcManager.Pages.Windows {
             }
 
             FileBasedOnlineSources.Instance.Update += OnOnlineSourcesUpdate;
+            ThirdPartyOnlineSourcesManager.Instance.Update += OnOnlineSourcesUpdate;
             if (CupClient.Instance != null) CupClient.Instance.NewLatestVersion += OnNewLatestVersion;
             Activated += OnActivated;
 
@@ -216,6 +220,40 @@ namespace AcManager.Pages.Windows {
 #if DEBUG
             // LapTimesGrid.Source = new Uri("/Pages/Miscellaneous/LapTimes_Grid.xaml", UriKind.Relative);
 #endif
+
+            GameDialog.HiddenInstances.CollectionChanged += (sender, args) => {
+                if (GameDialog.HiddenInstances.Count == 0) {
+                    TitleLinksPrefix = null;
+                    if (_runningInstancesPopup != null) {
+                        _runningInstancesPopup.IsOpen = false;
+                    }
+                } else if (TitleLinksPrefix == null) {
+                    TitleLinksPrefix = FindResource(@"RunningInstances");
+                    (TitleLinksPrefix as FrameworkElement)?.ResetElementNameBindings();
+                }
+            };
+
+            SettingsHolder.Common.PropertyChanged += (sender, args) => {
+                if (args.PropertyName == nameof(SettingsHolder.Common.LowerPriorityInBackground)) {
+                    Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;
+                }
+            };
+
+            Deactivated += (sender, args) => {
+                if (SettingsHolder.Common.LowerPriorityInBackground && !AttachedHelper.AnyRunning) {
+                    Task.Delay(TimeSpan.FromSeconds(3d)).ContinueWith(r => ActionExtension.InvokeInMainThreadAsync(() => {
+                        if (!IsActive) {
+                            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal;
+                        }
+                    }));
+                }
+            };
+
+            Activated += (sender, args) => {
+                if (SettingsHolder.Common.LowerPriorityInBackground) {
+                    Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;
+                }
+            };
         }
 
         private static Uri _navigateOnOpen;
@@ -275,21 +313,43 @@ namespace AcManager.Pages.Windows {
                 list.RemoveAt(i);
             }
 
+            foreach (var source in ThirdPartyOnlineSourcesManager.Instance.List.Where(x => x.IsEnabled)
+                    .OrderBy(x => x.DisplayName)) {
+                list.Add(new Link {
+                    DisplayName = $@"{source.DisplayName}",
+                    Source = UriExtension.Create("/Pages/Drive/Online.xaml?Filter=@{0}&Special=1", source.Id),
+                    ToolTip = string.IsNullOrEmpty(source.Description) ? null : new ToolTip {
+                        Content = new BbCodeBlock {
+                            Mode = EmojiSupport.Extended,
+                            Text = source.Description
+                        }
+                    }
+                });
+            }
+
             foreach (var source in FileBasedOnlineSources.Instance.GetVisibleSources().OrderBy(x => x.DisplayName)) {
                 list.Add(new Link {
                     DisplayName = $@"{source.DisplayName}",
                     Source = UriExtension.Create("/Pages/Drive/Online.xaml?Filter=@{0}&Special=1", source.Id)
                 });
             }
+
+            // <!--<mui:Link x:Name="MinoratingLink" DisplayName="Minorating" Source="/Pages/Drive/Online.xaml?Filter=@minorating&amp;Special=1" />-->
+            // <mui:Link DisplayName="{x:Static g:AppStrings.Main_Online_LAN}" Source="/Pages/Drive/Online.xaml?Filter=@lan&amp;Special=1" />
+
+            list.Add(new Link {
+                DisplayName = AppStrings.Main_Online_LAN,
+                Source = UriExtension.Create("/Pages/Drive/Online.xaml?Filter=@lan&Special=1")
+            });
         }
 
         public void UpdateRaceULinks(IEnumerable<Link> links) {
-            for (var i = RaceUGroup.Links.Count - 1; i > 0; --i) {
+            /*for (var i = RaceUGroup.Links.Count - 1; i > 0; --i) {
                 RaceUGroup.Links.RemoveAt(i);
             }
             foreach (var link in links) {
                 RaceUGroup.Links.Add(link);
-            }
+            }*/
         }
 
         private void OnOnlineSourcesUpdate(object sender, EventArgs e) {
@@ -371,10 +431,31 @@ namespace AcManager.Pages.Windows {
             // SrsLink.IsShown = SettingsHolder.Live.SrsEnabled;
             Srs2Link.IsShown = SettingsHolder.Live.SrsEnabled;
             WorldSimSeriesLink.IsShown = SettingsHolder.Live.WorldSimSeriesEnabled;
-            TrackTitanLink.IsShown = SettingsHolder.Live.TrackTitanEnabled;
-            UnitedRacingDataLink.IsShown = SettingsHolder.Live.UnitedRacingDataEnabled;
             foreach (var entry in LiveGroup.Links.Where(x => x.Tag == "user").ToList()) {
                 LiveGroup.Links.Remove(entry);
+            }
+            if (SettingsHolder.Live.LfmEnabled) {
+                LiveGroup.Links.AddSorted(new Link {
+                    DisplayName = "LFM",
+                    Source = new Uri("/Pages/Drive/UserLiveService.xaml", UriKind.Relative)
+                            .AddQueryParam("url", "https://lowfuelmotorsport.com/")
+                            .AddQueryParam("color", Color.FromArgb(255, 0xED, 0x1C, 0x24).As<string>()),
+                    Tag = "user"
+                }, LinkComparer.Instance);
+            }
+            if (SettingsHolder.Live.TrackTitanEnabled) {
+                LiveGroup.Links.AddSorted(new Link {
+                    DisplayName = "Track Titan",
+                    Source = new Uri("/Pages/Drive/UserLiveService.xaml", UriKind.Relative).AddQueryParam("url", "https://www.unitedracingdata.com/"),
+                    Tag = "user"
+                }, LinkComparer.Instance);
+            }
+            if (SettingsHolder.Live.UnitedRacingDataEnabled) {
+                LiveGroup.Links.AddSorted(new Link {
+                    DisplayName = "United Racing Data",
+                    Source = new Uri("/Pages/Drive/UserLiveService.xaml", UriKind.Relative).AddQueryParam("url", "https://www.tracktitan.io/"),
+                    Tag = "user"
+                }, LinkComparer.Instance);
             }
             foreach (var entry in SettingsHolder.Live.UserEntries) {
                 LiveGroup.Links.AddSorted(new Link {
@@ -386,17 +467,7 @@ namespace AcManager.Pages.Windows {
             LiveGroup.IsShown = LiveGroup.Links.Any(x => x.IsShown && x.Icon == null);
             // ShortSurveyLink.IsShown = !Stored.Get<bool>("surveyHide").Value;
 
-            RaceUGroup.IsShown = SettingsHolder.Live.RaceUEnabled && (ValuesStorage.Contains("RaceU.CurrentLocation") || RaceUCheckAb());
-
-            bool RaceUCheckAb() {
-                return true;
-                /*var steamId = SteamIdHelper.Instance.Value;
-                if (steamId == null) return false;
-
-                using (var algo = MD5.Create()) {
-                    return BitConverter.ToInt32(algo.ComputeHash(Encoding.UTF8.GetBytes(steamId)), 0) % 10 < 4;
-                }*/
-            }
+            RaceULink.IsShown = SettingsHolder.Live.RaceUEnabled;
         }
 
         /// <summary>
@@ -661,6 +732,7 @@ namespace AcManager.Pages.Windows {
 
         private void OnClosing(object sender, CancelEventArgs e) {
             if (_closed) return;
+            Logging.Debug("Closing main window…");
 
             try {
                 if (ServerPresetsManager.Instance.IsScanned) {
@@ -788,7 +860,9 @@ namespace AcManager.Pages.Windows {
                         } else {
                             presets.SwitchToNext();
                         }
-                        ShowQuickSwitchesPopup(presets.IconData, $@"{presets.CurrentUserPreset.DisplayName}", child.ToolTip);
+                        if (presets.CurrentUserPreset != null) {
+                            ShowQuickSwitchesPopup(presets.IconData, presets.CurrentUserPreset.DisplayName, child.ToolTip);
+                        }
                         break;
                     }
 
@@ -870,7 +944,7 @@ namespace AcManager.Pages.Windows {
             }
 
             e.Effects = DragDropEffects.Copy;
-            FancyHints.DragForContentSection.MaskAsUnnecessary();
+            FancyHints.DragForContentSection.MarkAsUnnecessary();
         }
 
         private void OnDriveTitleLinkDrop(object sender, DragEventArgs e) {
@@ -896,7 +970,7 @@ namespace AcManager.Pages.Windows {
             }
 
             e.Effects = DragDropEffects.Copy;
-            FancyHints.DragForContentSection.MaskAsUnnecessary();
+            FancyHints.DragForContentSection.MarkAsUnnecessary();
         }
 
         private static void MakeSureOnlineIsReady([CanBeNull] Uri uri) {
@@ -985,11 +1059,11 @@ namespace AcManager.Pages.Windows {
                 return true;
             }
 
-            if (s.Contains("/Pages/Settings/PythonAppsSettings.xaml")) {
+            /*if (s.Contains("/Pages/Settings/PythonAppsSettings.xaml")) {
                 CurrentGroupKey = "settings";
                 NavigateTo(uri);
                 return true;
-            }
+            }*/
 
             if (s.Contains("/Pages/Settings/SettingsShadersPatch.xaml")) {
                 CurrentGroupKey = "settings";
@@ -1166,7 +1240,7 @@ namespace AcManager.Pages.Windows {
         }
 
         private async void OnNewLatestVersion(object sender, CupEventArgs e) {
-            var manager = CupClient.Instance?.GetAssociatedManager(e.Key.Type);
+            var manager = CupClient.Instance?.GetAssociatedManager(e.Key.Type, false);
             if (manager == null) return;
             if (await manager.GetObjectByIdAsync(e.Key.Id) is ICupSupportedObject obj && obj.IsCupUpdateAvailable) {
                 FancyHints.ContentUpdatesArrived.Trigger();
@@ -1176,6 +1250,33 @@ namespace AcManager.Pages.Windows {
         private void OnDownloadsButtonClick(object sender, MouseButtonEventArgs e) {
             var glow = this.FindChild<FrameworkElement>("UpdateMarkGlow");
             (glow?.Parent as Panel)?.Children.Remove(glow);
+        }
+
+        private ModernPopup _runningInstancesPopup;
+
+        private void OnRunningInstancesButtonClick(object sender, RoutedEventArgs e) {
+            var button = (ToggleButton)sender;
+            button.IsHitTestVisible = false;
+            if (_runningInstancesPopup != null) {
+                _runningInstancesPopup.IsOpen = false;
+            }
+            _runningInstancesPopup = new ModernPopup {
+                Content = (UIElement)FindResource("RunningInstancesPopupContent"),
+                PlacementTarget = (UIElement)sender,
+                Placement = PlacementMode.Bottom,
+                StaysOpen = false,
+            };
+            _runningInstancesPopup.Closed += (o, args) => {
+                button.IsChecked = false;
+                button.IsHitTestVisible = true;
+                _runningInstancesPopup = null;
+            };
+            _runningInstancesPopup.IsOpen = true;
+        }
+
+        private void OnRunningInstancesItemClick(object sender, RoutedEventArgs e) {
+            var list = (ListBox)sender;
+            (list.SelectedItem as GameDialog.DialogHolder)?.RestoreCommand.Execute();
         }
     }
 }

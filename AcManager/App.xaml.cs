@@ -35,6 +35,7 @@ using AcManager.Tools;
 using AcManager.Tools.AcErrors;
 using AcManager.Tools.AcManagersNew;
 using AcManager.Tools.AcObjectsNew;
+using AcManager.Tools.ContentInstallation;
 using AcManager.Tools.Data;
 using AcManager.Tools.Data.GameSpecific;
 using AcManager.Tools.GameProperties;
@@ -139,8 +140,16 @@ namespace AcManager {
                 ValuesStorage.Set(AppAppearanceManager.KeySoftwareRendering, true);
             }
 
-            if (IsSoftwareRenderingModeEnabled()) {
-                SwitchToSoftwareRendering();
+            var softwareRenderingModeIsEnabled = IsSoftwareRenderingModeEnabled();
+            if (AppArguments.GetDouble(AppFlag.DesiredFrameRate) is double v && v > 0d) {
+                Timeline.DesiredFrameRateProperty.OverrideMetadata(typeof(Timeline), new FrameworkPropertyMetadata(v));
+                if (softwareRenderingModeIsEnabled) {
+                    RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+                    ModernFrame.OptionDisableTransitionAnimation = true;
+                }
+            } else if (softwareRenderingModeIsEnabled) {
+                RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+                Timeline.DesiredFrameRateProperty.OverrideMetadata(typeof(Timeline), new FrameworkPropertyMetadata(30));
             }
 
             var app = new App();
@@ -193,11 +202,6 @@ namespace AcManager {
         public static bool IsSoftwareRenderingModeEnabled() {
             return AppArguments.GetBool(AppFlag.SoftwareRendering) || ValuesStorage.Get<bool>(AppAppearanceManager.KeySoftwareRendering)
                     || MainExecutingFile.Name.IndexOf(@"safe", StringComparison.OrdinalIgnoreCase) != -1;
-        }
-
-        private static void SwitchToSoftwareRendering() {
-            RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
-            Timeline.DesiredFrameRateProperty.OverrideMetadata(typeof(Timeline), new FrameworkPropertyMetadata(30));
         }
 
         private AppHibernator _hibernator;
@@ -274,9 +278,9 @@ namespace AcManager {
             AppArguments.Set(AppFlag.FbxMultiMaterial, ref Kn5.OptionJoinToMultiMaterial);
 
             Acd.Factory = new AcdFactory();
-            //#if !DEBUG
+#if !DEBUG || true
             Kn5.Factory = Kn5New.GetFactoryInstance();
-            //#endif
+#endif
             Lazier.SyncAction = ActionExtension.InvokeInMainThreadAsync;
             KeyboardListenerFactory.Register<KeyboardListener>();
 
@@ -350,6 +354,7 @@ namespace AcManager {
             AppArguments.Set(AppFlag.PatchSupport, ref PatchHelper.OptionPatchSupport);
             AppArguments.Set(AppFlag.CspReportsLocation, ref CspReportUtils.OptionLocation);
             AppArguments.Set(AppFlag.RingDebug, ref ExtraProgressRings.OptionAnimationDevelopment);
+            AppArguments.Set(AppFlag.DevLobbies, ref ThirdPartyOnlineSourcesManager.OptionDevLobbies);
 #if INCLUDE_WORKSHOP
             AppArguments.Set(AppFlag.CmWorkshop, ref WorkshopClient.OptionUserAvailable);
             AppArguments.Set(AppFlag.CmWorkshopCreator, ref WorkshopClient.OptionCreatorAvailable);
@@ -417,6 +422,11 @@ namespace AcManager {
             }
 
             CupClient.Initialize();
+            CupClient.Instance?.RegisterPostponed(CupContentType.App, () => PythonAppsManager.Instance);
+            CupClient.Instance?.RegisterPostponed(CupContentType.LuaApp, () => LuaAppsManager.Instance);
+            CupClient.Instance?.RegisterPostponed(CupContentType.Showroom, () => ShowroomsManager.Instance);
+            CupClient.Instance?.RegisterPostponed(CupContentType.Filter, () => PpFiltersManager.Instance);
+            
             CupViewModel.Initialize();
             Superintendent.Initialize();
             ModsWebBrowser.Initialize();
@@ -429,17 +439,14 @@ namespace AcManager {
             PrepareUi();
 
             AppShortcut.Initialize("Content Manager", "Content Manager");
-
-            // If shortcut exists, make sure it has a proper app ID set for notifications
-            if (File.Exists(AppShortcut.ShortcutLocation)) {
-                AppShortcut.CreateShortcut();
-            }
-
             AppIconService.Initialize(new AppIconProvider());
 
             Toast.SetDefaultAction(() => (Current.Windows.OfType<ModernWindow>().FirstOrDefault(x => x.IsActive) ??
                     Current.MainWindow as ModernWindow)?.BringToFront());
             BbCodeBlock.ImageClicked += OnBbImageClick;
+            BbCodeBlock.IconsDictionary = new SharedResourceDictionary {
+                Source = new Uri("/AcManager.Controls;component/Assets/IconData.xaml", UriKind.Relative)
+            };
             BbCodeBlock.OptionEmojiProvider = new EmojiProvider();
             BbCodeBlock.OptionImageCacheDirectory = FilesStorage.Instance.GetTemporaryFilename("Images");
             BbCodeBlock.OptionEmojiCacheDirectory = FilesStorage.Instance.GetTemporaryFilename("Emoji");
@@ -447,7 +454,7 @@ namespace AcManager {
             BbCodeBlock.AddLinkCommand(new Uri("cmd://csp/enable"), new DelegateCommand(() => {
                 using (var model = PatchSettingsModel.Create()) {
                     var item = model.Configs?
-                            .FirstOrDefault(x => x.FileNameWithoutExtension == "general")?.Sections.GetByIdOrDefault("BASIC")?
+                            .FirstOrDefault(x => x.FileNameWithoutExtension == "general")?.SectionsOwn.GetByIdOrDefault("BASIC")?
                             .GetByIdOrDefault("ENABLED");
                     if (item != null) {
                         item.Value = @"1";
@@ -458,7 +465,7 @@ namespace AcManager {
             BbCodeBlock.AddLinkCommand(new Uri("cmd://csp/disable"), new DelegateCommand(() => {
                 using (var model = PatchSettingsModel.Create()) {
                     var item = model.Configs?
-                            .FirstOrDefault(x => x.FileNameWithoutExtension == "general")?.Sections.GetByIdOrDefault("BASIC")?
+                            .FirstOrDefault(x => x.FileNameWithoutExtension == "general")?.SectionsOwn.GetByIdOrDefault("BASIC")?
                             .GetByIdOrDefault("ENABLED");
                     if (item != null) {
                         item.Value = @"0";
@@ -550,6 +557,7 @@ namespace AcManager {
             AppArguments.Set(AppFlag.CspPreviewsBatchSize, ref CmPreviewsTools.OptionBatchSize);
             AppArguments.Set(AppFlag.CspPreviewsRunVisible, ref DarkPreviewsAcUpdater.OptionRunVisible);
             AppArguments.Set(AppFlag.CspPreviewsKeepPositions, ref DarkPreviewsAcUpdater.OptionKeepPositions);
+            AppArguments.Set(AppFlag.AllowDataScripts, ref ArgumentsHandler.OptionAllowDataScripts);
             SlimDX.Configuration.DetectDoubleDispose = true;
             SlimDX.Configuration.EnableObjectTracking = true;
             Filter.OptionSimpleMatching = true;
@@ -560,6 +568,21 @@ namespace AcManager {
             SettingsHolder.Content.OldLayout = AppArguments.GetBool(AppFlag.CarsOldLayout);
 
             var acRootIsFine = Superintendent.Instance.IsReady && !AcRootDirectorySelector.IsReviewNeeded();
+            
+            // Initializing AC configs 
+            if (acRootIsFine) {
+                var sourceCfg = Path.Combine(AcRootDirectory.Instance.Value ?? string.Empty, "cfg");
+                if (File.Exists(Path.Combine(sourceCfg, "templates\\tracks.ini"))) {
+                    var documentsCfg = AcPaths.GetDocumentsCfgDirectory();
+                    if (!Directory.Exists(sourceCfg)) {
+                        FileUtils.CopyRecursive(sourceCfg, documentsCfg);
+                    } else if (!File.Exists(Path.Combine(documentsCfg, "templates\\tracks.ini"))) {
+                        FileUtils.CopyRecursive(sourceCfg, documentsCfg, false);
+                    }
+                }
+            }
+            
+            // Preparing Steam starter thing
             if (acRootIsFine && SteamStarter.Initialize(AcRootDirectory.Instance.Value, false)) {
                 if (SettingsHolder.Drive.SelectedStarterType != SettingsHolder.DriveSettings.SteamStarterType) {
                     SettingsHolder.Drive.SelectedStarterType = SettingsHolder.DriveSettings.SteamStarterType;
@@ -576,6 +599,12 @@ namespace AcManager {
 
             InitializeUpdatableStuff();
             BackgroundInitialization();
+
+            NewFilesReporter.NewFileCreated += (sender, s) => {
+                if (SettingsHolder.Content.CompressFilesInBackground) {
+                    FilesCompressor.RegisterNewFileToBeCompressedLater(s);
+                }
+            };
 
             FatalErrorMessage.Register(new AppRestartHelper());
             ImageUtils.SafeMagickWrapper = fn => {
@@ -668,12 +697,20 @@ namespace AcManager {
                     PatchUpdater.Instance.Updated += OnPatchUpdated;
                 }
             });
+
+            WebBlock.CmCommandHandler = s => {
+                ActionExtension.InvokeInMainThreadAsync(() => {
+                    using (GameWrapper.SetPropertiesCallback(p => p.SetAdditional(new LiveServiceMark("Generic")))) {
+                        ArgumentsHandler.ProcessArguments(new[] { s }, true).Ignore();
+                    }
+                });
+            };
         }
 
         private static async Task CheckFaultTolerantHeap() {
             try {
                 await Task.Delay(500);
-                if (ValuesStorage.Get(".fth.shown2", false) && FaultTolerantHeapFix.Check()) {
+                if (ValuesStorage.Get(".fth.shown3", false) && FaultTolerantHeapFix.Check()) {
                     NonfatalError.NotifyBackground("Performance issue detected",
                             "Assetto Corsa performance is negatively affected by FTH. Content Manager can try to fix it.",
                             solutions: new[] {
@@ -699,6 +736,14 @@ namespace AcManager {
                     Logging.Error(e);
                 }
             });
+            await Task.Delay(5000);
+
+            // If shortcut exists, make sure it has a proper app ID set for notifications
+            var runs = ValuesStorage.Get(".r", 0);
+            if (runs % 16 == 15 && File.Exists(AppShortcut.ShortcutLocation)) {
+                AppShortcut.CreateShortcut();
+            }
+            ValuesStorage.Set(".r", ++runs);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -745,8 +790,8 @@ namespace AcManager {
         private static void PrepareUi() {
             try {
                 ToolTipService.ShowOnDisabledProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(true));
-                ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(300));
-                ToolTipService.BetweenShowDelayProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(600));
+                ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(500));
+                ToolTipService.BetweenShowDelayProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(0));
                 ToolTipService.ShowDurationProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(60000));
                 ItemsControl.IsTextSearchCaseSensitiveProperty.OverrideMetadata(typeof(ComboBox), new FrameworkPropertyMetadata(true));
 
@@ -815,7 +860,7 @@ namespace AcManager {
                 string additional = null;
                 AppArguments.Set(AppFlag.SimilarAdditionalSourceIds, ref additional);
                 if (!string.IsNullOrWhiteSpace(additional)) {
-                    CarAnalyzer.OptionSimilarAdditionalSourceIds = additional.Split(';', ',').Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
+                    CarAnalyzer.OptionSimilarAdditionalSourceIds = additional;
                 }
 
                 await Task.Delay(500);
@@ -858,6 +903,12 @@ namespace AcManager {
 
                 await Task.Delay(1500);
                 ExtraProgressRings.Initialize();
+
+                AcSharedMemory.Instance.BackgroundProcessingOpportunity += (sender, args) => {
+                    if (SettingsHolder.Content.CompressFilesInBackground) {
+                        FilesCompressor.BackgroundCompressStep();
+                    }
+                };
 
                 await Task.Delay(3500);
                 await Task.Run(() => {

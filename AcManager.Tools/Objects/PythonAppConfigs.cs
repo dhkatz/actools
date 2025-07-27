@@ -28,12 +28,11 @@ namespace AcManager.Tools.Objects {
                         .Select(x => configParams.ConfigFactory != null
                                 ? configParams.ConfigFactory(configParams, x)
                                 : PythonAppConfig.Create(configParams, x, false))
-                        .Where(x => x?.Sections.Any(y => y.Count > 0) == true)
+                        .Where(x => x?.SectionsOwn.Any(y => y.Count > 0) == true)
                         .OrderBy(x => x.Order.As(0d)).ThenBy(x => x.DisplayName)) {
             ConfigParams = configParams;
             UpdateReferenced();
             foreach (var config in this) {
-
                 config.ValueChanged += OnValueChanged;
             }
         }

@@ -89,6 +89,13 @@ namespace AcManager.Tools.Managers.Online {
             }
         }
 
+        private bool _passwordIsMissing;
+
+        public bool PasswordIsMissing {
+            get => _passwordIsMissing;
+            set => Apply(value, ref _passwordIsMissing);
+        }
+
         private string KeyPasswordStorage => $@"__smt_pw_{Id}";
 
         private string _password;
@@ -206,6 +213,8 @@ namespace AcManager.Tools.Managers.Online {
             get => _cspFeaturesList;
             set => Apply(value, ref _cspFeaturesList, () => OnPropertyChanged(nameof(DisplayCspFeatures)));
         }
+
+        private string _backgroundImage;
 
         [CanBeNull]
         public string DisplayCspFeatures => CspFeaturesList?.Length > 0 ? CspFeaturesList.JoinToReadableString() : null;
@@ -333,18 +342,25 @@ namespace AcManager.Tools.Managers.Online {
             set => Apply(value, ref _cspRequiredMissing);
         }
 
-        private bool _CspExtendedCarsPhysics;
+        private bool _cspExtendedCarsPhysics;
 
         public bool CspExtendedCarsPhysics {
-            get => _CspExtendedCarsPhysics;
-            set => Apply(value, ref _CspExtendedCarsPhysics);
+            get => _cspExtendedCarsPhysics;
+            set => Apply(value, ref _cspExtendedCarsPhysics);
         }
 
-        private bool _CspExtendedTrackPhysics;
+        private bool _cspExtendedTrackPhysics;
 
         public bool CspExtendedTrackPhysics {
-            get => _CspExtendedTrackPhysics;
-            set => Apply(value, ref _CspExtendedTrackPhysics);
+            get => _cspExtendedTrackPhysics;
+            set => Apply(value, ref _cspExtendedTrackPhysics);
+        }
+
+        private bool _cspIcePhysics;
+
+        public bool CspIcePhysics {
+            get => _cspIcePhysics;
+            set => Apply(value, ref _cspIcePhysics);
         }
 
         private string _trackId;

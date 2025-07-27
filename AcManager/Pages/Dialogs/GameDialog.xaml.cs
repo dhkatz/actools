@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -11,11 +13,14 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media.Effects;
+using System.Windows.Threading;
 using AcManager.Controls;
 using AcManager.Controls.Helpers;
 using AcManager.Controls.Presentation;
+using AcManager.Internal;
 using AcManager.Pages.Selected;
 using AcManager.Tools;
+using AcManager.Tools.Data;
 using AcManager.Tools.Data.GameSpecific;
 using AcManager.Tools.Helpers;
 using AcManager.Tools.Helpers.AcLog;
@@ -33,11 +38,13 @@ using FirstFloor.ModernUI.Commands;
 using FirstFloor.ModernUI.Dialogs;
 using FirstFloor.ModernUI.Helpers;
 using FirstFloor.ModernUI.Presentation;
+using FirstFloor.ModernUI.Serialization;
 using FirstFloor.ModernUI.Windows;
 using FirstFloor.ModernUI.Windows.Controls;
 using FirstFloor.ModernUI.Windows.Converters;
 using FirstFloor.ModernUI.Windows.Media;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using Application = System.Windows.Application;
 using Button = System.Windows.Controls.Button;
 using DataGrid = System.Windows.Controls.DataGrid;
@@ -45,6 +52,30 @@ using MenuItem = System.Windows.Controls.MenuItem;
 
 namespace AcManager.Pages.Dialogs {
     public partial class GameDialog : IGameUi {
+        public class DialogHolder : NotifyPropertyChanged {
+            public DialogHolder(GameDialog parent) {
+                Parent = parent;
+            }
+            
+            public GameDialog Parent { get; }
+
+            private DelegateCommand _restoreCommand;
+
+            public DelegateCommand RestoreCommand => _restoreCommand ?? (_restoreCommand = new DelegateCommand(() => {
+                Parent.Visibility = Visibility.Visible;
+                HiddenInstances.Remove(this);
+            }));
+
+            public string DisplayState => Parent.Model.Title;
+            
+            public string DisplayDetails => Parent.Model.CurrentState == ViewModel.State.Waiting ? Parent.Model.WaitingStatus 
+                    : Parent.Model.CurrentState == ViewModel.State.Error ? ControlsStrings.Common_Error
+                    : Parent.Model.CurrentState == ViewModel.State.Cancelled ? ControlsStrings.Common_Cancelled 
+                    : ControlsStrings.Common_Finished;
+        }
+        
+        public static BetterObservableCollection<DialogHolder> HiddenInstances { get; } = new BetterObservableCollection<DialogHolder>();
+        
         public static bool OptionBenchmarkReplays = false;
         public static bool OptionHideCancelButton = false;
 
@@ -70,7 +101,55 @@ namespace AcManager.Pages.Dialogs {
                 ProgressRing.Style = ExtraProgressRings.StylesLazy.GetValueOrDefault(_progressStyles.Next)?.Value;
             }
 
-            Buttons = new[] { OptionHideCancelButton ? null : CancelButton };
+            Buttons = new[] {
+                OptionHideCancelButton ? null : new Button {
+                    Content = UiStrings.Toolbar_Hide,
+                    Command = new DelegateCommand(() => {
+                        HiddenInstances.Add(new DialogHolder(this));
+                        Visibility = Visibility.Collapsed;
+                    }),
+                },
+                OptionHideCancelButton ? null : CancelButton
+            };
+            Activated += (sender, args) => ProgressRing.IsActive = true;
+            Deactivated += (sender, args) => ProgressRing.IsActive = false;
+            
+            // Helping CSP by cleaning obsolete caches
+            var cef = Path.Combine(AcRootDirectory.Instance.RequireValue, "cache\\cef\\readme.txt");
+            if (File.Exists(cef)) {
+                var file = FilesStorage.Instance.GetContentFile(ContentCategory.Miscellaneous, @"CompatibilityTable.json");
+                try {
+                    string[] items = {@"check out for “"};
+                    if (file.Exists) {
+                        items = JsonConvert.DeserializeObject<string[]>(File.ReadAllText(file.Filename));
+                    }
+                    var data = File.ReadAllText(cef);
+                    if (items.Any(x => data.Contains(x, StringComparison.Ordinal))) {
+                        FileUtils.TryToDelete(Path.Combine(AcRootDirectory.Instance.RequireValue, "cache\\cef\\assetto corsa cef.exe"));
+                        Task.Run(() => FileUtils.TryToDeleteDirectory(Path.GetDirectoryName(cef))).Ignore();
+                    }
+                } catch (Exception e) {
+                    Logging.Error(e);
+                }
+            }
+            
+            // And by tuning LuaJIT if necessary
+            if (!PatchHelper.IsFeatureSupported(PatchHelper.FeatureLibrariesPreoptimized)) {
+                try {
+                    var versionID = PatchHelper.GetActiveBuild().As(0);
+                    InstallCspTweak(versionID);
+                    InstallCspTweak(2700);
+                } catch (Exception e) {
+                    Logging.Error(e);
+                }
+            }
+        }
+
+        private static void InstallCspTweak(int versionID) {
+            var patch = InternalUtils.GetLibrariesOptimizationTweak(versionID);
+            if (patch != null) {
+                File.WriteAllText(Path.Combine(AcRootDirectory.Instance.RequireValue, "extension\\internal", patch.Item2), patch.Item1);
+            }
         }
 
         public GameDialog(Game.Result readyResult) {
@@ -116,7 +195,7 @@ namespace AcManager.Pages.Dialogs {
         protected override void OnClosingOverride(CancelEventArgs e) {
             if (IsResultCancel) {
                 try {
-                    _cancellationSource.Cancel();
+                    _cancellationSource?.Cancel();
                 } catch (ObjectDisposedException) { }
             }
 
@@ -126,7 +205,7 @@ namespace AcManager.Pages.Dialogs {
 
         public void Dispose() {
             try {
-                _cancellationSource.Dispose();
+                _cancellationSource?.Dispose();
             } catch (ObjectDisposedException) { }
         }
 
@@ -152,6 +231,33 @@ namespace AcManager.Pages.Dialogs {
             Model.WaitingStatus = message;
             Model.WaitingProgress = subProgress ?? AsyncProgressEntry.Ready;
             Model.SubCancellationCallback = subCancellationCallback;
+        }
+
+        private void MonitorExitStatus() {
+            if (_shuttingDownTimer == null) {
+                _shuttingDownTimer = new DispatcherTimer(TimeSpan.FromSeconds(0.5d), DispatcherPriority.Background, (s, e) => {
+                    if (_shuttingDownMmFile == null) {
+                        try {
+                            _shuttingDownMmFile = new BetterMemoryMappedAccessor<ShuttingDownData>("AcTools.CSP.ShutdownProgress.v0");
+                        } catch {
+                            return;
+                        }
+                    }
+                    
+                    var phase = _shuttingDownMmFile.GetPacketId();
+                    if (_shuttingDownPhase != phase) {
+                        _shuttingDownPhase = phase;
+                        if (phase == 0) {
+                            _shuttingDownTimer?.Stop();
+                        } else {
+                            var i = _shuttingDownMmFile.Get().Message.IndexOf((byte)0);
+                            var d = _shuttingDownMmFile.Get().Message;
+                            Model.WaitingStatus = Encoding.UTF8.GetString(d, 0, i < 0 ? d.Length : i);
+                        }
+                    }
+                }, Application.Current.Dispatcher);
+                
+            }
         }
 
         public void OnProgress(Game.ProgressState progress) {
@@ -190,6 +296,7 @@ namespace AcManager.Pages.Dialogs {
                 case Game.ProgressState.Waiting:
                     Model.WaitingStatus = _mode == GameMode.Race ? AppStrings.Race_Waiting :
                             _mode == GameMode.Replay ? AppStrings.Race_WaitingReplay : AppStrings.Race_WaitingBenchmark;
+                    MonitorExitStatus();
                     break;
                 case Game.ProgressState.Finishing:
                     RevertSizeFix().Ignore();
@@ -205,6 +312,14 @@ namespace AcManager.Pages.Dialogs {
             var takenPlace = conditions?.GetTakenPlace(result) ?? PlaceConditions.UnremarkablePlace;
 
             Logging.Debug($"Place conditions: {conditions?.GetDescription()}, result: {result.GetDescription()}");
+
+            if (result.GetExtraByType<Game.ResultExtraCustomMode>(out var custom)) {
+                return new CustomModeFinishedData {
+                    ModeName = NewRaceModeData.Instance.Items.GetByIdOrDefault(custom.Id)?.DisplayName ?? AcStringValues.NameFromId(custom.Id),
+                    Message = custom.Message,
+                    TakenPlace = custom.TakenPlace
+                };
+            }
 
             if (result.GetExtraByType<Game.ResultExtraDrift>(out var drift)) {
                 return new DriftFinishedData {
@@ -510,6 +625,12 @@ namespace AcManager.Pages.Dialogs {
             public override string Title => SelectedSession?.Title;
         }
 
+        public class CustomModeFinishedData : BaseFinishedData {
+            public override string Title => ModeName;
+            public string ModeName { get; set; }
+            public string Message { get; set; }
+        }
+
         public class DriftFinishedData : BaseFinishedData {
             public override string Title { get; } = ToolsStrings.Session_Drift;
             public int Points { get; set; }
@@ -547,6 +668,23 @@ namespace AcManager.Pages.Dialogs {
             public DragFinishedData() : base(ToolsStrings.Session_Drag) { }
         }
 
+        [StructLayout(LayoutKind.Sequential, Pack = 4, CharSet = CharSet.Unicode), Serializable]
+        private class ShuttingDownData {
+            public int Phase;
+            
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+            public byte[] Message;
+        }
+
+        private BetterMemoryMappedAccessor<ShuttingDownData> _shuttingDownMmFile;
+        private int _shuttingDownPhase;
+        private DispatcherTimer _shuttingDownTimer;
+
+        protected override void OnClosedOverride() {
+            base.OnClosedOverride();
+            _shuttingDownTimer?.Stop();
+        }
+
         public void OnResult(Game.Result result, ReplayHelper replayHelper) {
             RevertSizeFix().Ignore();
 
@@ -555,7 +693,6 @@ namespace AcManager.Pages.Dialogs {
             }
 
             var data = AcSharedMemory.Instance.GetFpsDetails();
-
             if (SettingsHolder.Drive.MonitorFramesPerSecond) {
                 AcSettingsHolder.Video.LastSessionPerformanceData = data;
             }
@@ -674,7 +811,6 @@ namespace AcManager.Pages.Dialogs {
             });
 
             Button fixButton = null;
-
             if (result == null || !result.IsNotCancelled) {
                 Model.CurrentState = ViewModel.State.Cancelled;
                 DelayedBeep().Ignore();
@@ -858,14 +994,14 @@ namespace AcManager.Pages.Dialogs {
                         ((DataGridTemplateColumn)columns[0]).CellTemplate = (DataTemplate)FindResource(x ?
                                 @"TotalTimeDeltaTemplate" : @"TotalTimeDeltaTemplate.FarRight");
                         if (x) {
-                            FancyHints.GameDialogTableSize.MaskAsUnnecessary();
+                            FancyHints.GameDialogTableSize.MarkAsUnnecessary();
                         }
                     });
 
             if (ActualWidth < 1000d) {
                 FancyHints.GameDialogTableSize.Trigger();
             } else {
-                FancyHints.GameDialogTableSize.MaskAsUnnecessary();
+                FancyHints.GameDialogTableSize.MarkAsUnnecessary();
             }
         }
 

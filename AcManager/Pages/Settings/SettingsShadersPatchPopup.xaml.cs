@@ -119,7 +119,7 @@ namespace AcManager.Pages.Settings {
         public LocalKeyBindingsController KeyBindingsController { get; }
 
         private void SetKeyboardInputs() {
-            KeyBindingsController.Set(Model.SelectedPage?.Config?.Sections.SelectMany().OfType<PythonAppConfigKeyValue>());
+            KeyBindingsController.Set(Model.SelectedPage?.Config?.SectionsOwn.SelectMany().OfType<PythonAppConfigKeyValue>());
         }
 
         private PatchSettingsModel Model => (PatchSettingsModel)DataContext;
@@ -178,6 +178,7 @@ namespace AcManager.Pages.Settings {
         }
 
         private void SetSelected() {
+            return;
             var selected = GetSelected();
             if (selected == null || _selectionCell == null) return;
 

@@ -5,6 +5,12 @@ namespace AcManager {
     /// </summary>
     public enum AppFlag {
         /// <summary>
+        /// Changes target frame rate for CM UI. Default value: 60.
+        /// Example: --desired-frame-rate=30.
+        /// </summary>
+        DesiredFrameRate,
+        
+        /// <summary>
         /// Changes maximum number of skins to be rendered at once using AC CSP. Default value: 10.
         /// Example: --csp-previews-batch-size=100.
         /// </summary>
@@ -24,11 +30,23 @@ namespace AcManager {
         CspPreviewsKeepPositions,
         
         /// <summary>
+        /// For development purposes.
+        /// Example: --allow-data-scripts.
+        /// </summary>
+        AllowDataScripts,
+        
+        /// <summary>
         /// Size of cache for cars LOD generator. Default value: 100 MB.
         /// Example: --car-lod-generator-cache-size=50MB.
         /// </summary>
         [FlagDefaultValue("100MB")]
         CarLodGeneratorCacheSize,
+
+        /// <summary>
+        /// Use developer list of extra online lobbies.
+        /// Example: --dev-lobbies.
+        /// </summary>
+        DevLobbies,
 
         /// <summary>
         /// For development purposes.
@@ -59,6 +77,12 @@ namespace AcManager {
         /// Example: --patch-support.
         /// </summary>
         PatchSupport,
+
+        /// <summary>
+        /// Hide everything but server management.
+        /// Example: --simple-quick-drive-mode.
+        /// </summary>
+        SimpleQuickDriveMode,
 
         /// <summary>
         /// Hide everything but server management.
@@ -266,7 +290,7 @@ namespace AcManager {
 
         /// <summary>
         /// Additional IDs for searching for similar data (by default, only Kunos cars
-        /// are checked as potential sources) separated by comma or semicolon.
+        /// are checked as potential sources) separated by commas.
         /// Example: --similar-additional-source-ids=.
         /// </summary>
         SimilarAdditionalSourceIds,

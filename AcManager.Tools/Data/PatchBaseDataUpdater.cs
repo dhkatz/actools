@@ -178,7 +178,7 @@ namespace AcManager.Tools.Data {
         }
 
         public string GetApiUrl() {
-            return $@"{InternalUtils.MainApiDomain}/{Parent.GetBaseUrl()}/{Id}";
+            return $@"{InternalUtils.PatchDataApiDomain}{Parent.GetBaseUrl()}/{Id}";
         }
 
         protected virtual bool FilterEntry(ZipArchiveEntry entry) {
@@ -336,12 +336,8 @@ namespace AcManager.Tools.Data {
 
         private DelegateCommand _viewInExplorerCommand;
 
-        public DelegateCommand ViewInExplorerCommand
-            =>
-                    _viewInExplorerCommand
-                            ?? (_viewInExplorerCommand =
-                                    new DelegateCommand(() => { WindowsHelper.ViewDirectory(GetDestinationDirectory()); },
-                                            () => Directory.Exists(GetDestinationDirectory())));
+        public DelegateCommand ViewInExplorerCommand => _viewInExplorerCommand ?? (_viewInExplorerCommand = new DelegateCommand(
+                () => WindowsHelper.ViewDirectory(GetDestinationDirectory()), () => Directory.Exists(GetDestinationDirectory())));
 
         private int _availableToInstall;
 
@@ -466,7 +462,7 @@ namespace AcManager.Tools.Data {
                     } else {
                         Logging.Debug("Loading entries list…");
                         progress?.Report(AsyncProgressEntry.FromStringIndetermitate("Loading entries list…"));
-                        var list = await ApiCache.GetStringAsync($"{InternalUtils.MainApiDomain}/{GetBaseUrl()}", @"list").WithCancellation(cancellation);
+                        var list = await ApiCache.GetStringAsync($"{InternalUtils.PatchDataApiDomain}{GetBaseUrl()}", @"list").WithCancellation(cancellation);
                         Logging.Debug("Done: " + cancellation.IsCancellationRequested);
                         if (cancellation.IsCancellationRequested) return;
 
@@ -509,7 +505,7 @@ namespace AcManager.Tools.Data {
                     IsLoaded = false;
 
                     await Prepare();
-                    var list = await ApiCache.GetStringAsync($"{InternalUtils.MainApiDomain}/{GetBaseUrl()}", @"list");
+                    var list = await ApiCache.GetStringAsync($"{InternalUtils.PatchDataApiDomain}{GetBaseUrl()}", @"list");
                     if (list == null) {
                         ErrorMessage = "Can’t download list of entries";
                         UnavailableCount = 0;

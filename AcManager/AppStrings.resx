@@ -457,7 +457,7 @@ Author: [b]{3}[/b]</value>
     <comment>Settings@Invariant</comment>
   </data>
   <data name="Main_Apps" xml:space="preserve">
-    <value>Apps</value>
+    <value>Python Apps</value>
   </data>
   <data name="Main_LuaApps" xml:space="preserve">
     <value>Lua Apps</value>
@@ -945,7 +945,7 @@ Working directory will be set to Assetto Corsa folder in Documents.</value>
     <value>Enable Quick Switches</value>
   </data>
   <data name="Settings_QuickSwitches_Description" xml:space="preserve">
-    <value>Quick Switches — a small popup menu, which allows to change different settings from any place of the program. To open this menu, press Alt+~ or click middle mouse button. Also, you can change settings by pressing Alt+1…Alt+9.[br][br]If you need some new option, [url="https://acstuff.ru/app/#contacts"]please contact us[/url].</value>
+    <value>Quick Switches — a small popup menu, which allows to change different settings from any place of the program. To open this menu, press Alt+~ or click middle mouse button. Also, you can change settings by pressing Alt+1…Alt+9.[br][br]If you need some new option, [url="https://acstuff.club/app/#contacts"]please contact us[/url].</value>
   </data>
   <data name="Settings_QuickSwitches_AddedLabel" xml:space="preserve">
     <value>Added:</value>
@@ -3032,7 +3032,7 @@ But if you don’t want to waste 200 MB: TIFF image, 96 bit per pixel, ZIP</valu
     <value>Replays:</value>
   </data>
   <data name="AcSettings_Apps" xml:space="preserve">
-    <value>Apps</value>
+    <value>Python Apps</value>
   </data>
   <data name="AcSettings_Video" xml:space="preserve">
     <value>Video</value>
@@ -3266,7 +3266,7 @@ But if you don’t want to waste 200 MB: TIFF image, 96 bit per pixel, ZIP</valu
     <value>Report an issue</value>
   </data>
   <data name="About_ContactInformation" xml:space="preserve">
-    <value>If you have any question, idea or suggestion about this app, or if you want to report some specific problem, please [url="https://acstuff.ru/app/#contacts"]contact us[/url].</value>
+    <value>If you have any question, idea or suggestion about this app, or if you want to report some specific problem, please [url="https://acstuff.club/app/#contacts"]contact us[/url].</value>
   </data>
   <data name="About_ContactUsHeader" xml:space="preserve">
     <value>Contact us:</value>
@@ -3297,7 +3297,7 @@ But if you don’t want to waste 200 MB: TIFF image, 96 bit per pixel, ZIP</valu
 Content Manager [url="/Pages/About/License.xaml|_top"]License[/url].</value>
   </data>
   <data name="About_Copyright" xml:space="preserve">
-    <value>Copyright © 2016–2020 AcClub.</value>
+    <value>Copyright © 2016–2024 AcClub.</value>
   </data>
   <data name="About_MarkAllAsRead" xml:space="preserve">
     <value>Mark all as read</value>
@@ -3678,7 +3678,7 @@ Content Manager [url="/Pages/About/License.xaml|_top"]License[/url].</value>
       <value>Downloads:</value>
     </data>
     <data name="MainWindow_Downloads_RemoveCompleted" xml:space="preserve">
-      <value>Remove completed</value>
+      <value>Clear completed</value>
     </data>
     <data name="MainWindow_Downloads_InstallAll" xml:space="preserve">
       <value>Install all</value>
@@ -3958,7 +3958,7 @@ Content Manager [url="/Pages/About/License.xaml|_top"]License[/url].</value>
       <value>No configurable apps found</value>
     </data>
     <data name="Settings_PythonApps_ChangedWillBeSavedAutomatically" xml:space="preserve">
-      <value>Changes will be saved automatically. If you want to optimize the way configuration files are shown, you can find more information about them [url=&quot;https://acstuff.ru/f/d/19-content-manager-python-app-configs&quot;]here[/url].</value>
+      <value>Changes will be saved automatically. If you want to optimize the way configuration files are shown, you can find more information about them [url=&quot;https://acstuff.club/f/d/19-content-manager-python-app-configs&quot;]here[/url].</value>
     </data>
     <data name="Settings_CustomShowroom_UseCustomShowroomInstead" xml:space="preserve">
       <value>Use Custom Showroom instead of the original one in some cases</value>
@@ -4042,7 +4042,7 @@ Content Manager [url="/Pages/About/License.xaml|_top"]License[/url].</value>
       <value>Changes won’t affect already shown windows.</value>
     </data>
     <data name="Settings_Drive_TryToStartSteamIfNotRunning" xml:space="preserve">
-      <value>Try to start Steam if not running (recommended)</value>
+      <value>Try to start Steam if not running when starting a race (recommended)</value>
     </data>
     <data name="Settings_General_Open" xml:space="preserve">
       <value>Open</value>
@@ -4390,11 +4390,8 @@ Content Manager [url="/Pages/About/License.xaml|_top"]License[/url].</value>
       <value>View in Explorer</value>
     </data>
     <data name="ContentTools_FilesCompressor_Description" xml:space="preserve">
-      <value>CM scans for all models and textures (KN5 and DDS files) — those files can be well compressed,
-sometimes even in several times. There is not much benefit in compressing files like soundbanks or PNG images: those formats
-have proper compression already, and it will only slightly slow down AC loading.
-[br][br]I recommend to use the best compression algorithm, LZX. It will add some CPU load during loading, but CPU has nothing to do
-anyway while it’s waiting for disk to get the data, and there will much less data to read.
+      <value>CM scans for all models and textures (KN5 and DDS files) — those files can be compressed properly, sometimes even reducing their size several times. There is not much benefit in compressing files such as soundbanks or PNG images: those formats already have a decent compression, and it will only slightly slow down AC loading.
+[br][br]I recommend to use the best compression algorithm, LZX. It will add some CPU overhead during loading, but CPU has nothing to do while it’s waiting for disk to get the data anyway, and there will much less data to wait for.
 [br][br]Of course, [b]it shouldn’t affect FPS in any way[/b]: AC doesn’t load resources dynamically.</value>
     </data>
     <data name="ContentTools_FilesCompressor_Compress" xml:space="preserve">
@@ -4852,7 +4849,7 @@ anyway while it’s waiting for disk to get the data, and there will much less d
         <value>Password:</value>
     </data>
     <data name="DownloadList_DetectionFailed" xml:space="preserve">
-        <value>App couldn’t detect any content to install here. Would you like to install it manually?</value>
+        <value>Nothing to install found. Try installing manually?</value>
     </data>
     <data name="DownloadList_ShowFile" xml:space="preserve">
         <value>Show file</value>
@@ -4990,5 +4987,14 @@ anyway while it’s waiting for disk to get the data, and there will much less d
     </data>
     <data name="Common.SliderPostfix.Hours" xml:space="preserve">
         <value> hour</value>
+    </data>
+    <data name="QuickDrive_Mode_More" xml:space="preserve">
+        <value>More</value>
+    </data>
+    <data name="Online_DriversOnServer" xml:space="preserve">
+        <value>{0} {driver} on server</value>
+    </data>
+    <data name="UserChampionships_CreateNew" xml:space="preserve">
+        <value>Create new</value>
     </data>
 </root>

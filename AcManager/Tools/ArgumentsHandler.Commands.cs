@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -17,6 +18,7 @@ using AcManager.Tools.Data;
 using AcManager.Tools.Helpers;
 using AcManager.Tools.Helpers.Api.TheSetupMarket;
 using AcManager.Tools.Managers;
+using AcManager.Tools.Managers.Online;
 using AcManager.Tools.Miscellaneous;
 using AcManager.Tools.Objects;
 using AcManager.Tools.SemiGui;
@@ -32,6 +34,7 @@ using FirstFloor.ModernUI.Windows;
 using FirstFloor.ModernUI.Windows.Controls;
 using FirstFloor.ModernUI.Windows.Converters;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using SharpCompress.Archives.Zip;
 
 namespace AcManager.Tools {
@@ -39,6 +42,8 @@ namespace AcManager.Tools {
         public static bool IsCmCommand(Uri uri) {
             return uri.IsAbsoluteUri && (uri.OriginalString.StartsWith(@"https://acstuff.ru/s/", StringComparison.OrdinalIgnoreCase)
                     || uri.OriginalString.StartsWith(@"http://acstuff.ru/s/", StringComparison.OrdinalIgnoreCase)
+                    || uri.OriginalString.StartsWith(@"https://acstuff.club/s/", StringComparison.OrdinalIgnoreCase)
+                    || uri.OriginalString.StartsWith(@"http://acstuff.club/s/", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(uri.Scheme, @"acmanager", StringComparison.OrdinalIgnoreCase));
         }
 
@@ -151,6 +156,22 @@ namespace AcManager.Tools {
                 return ArgumentHandleResult.Failed;
             }
 
+            string ParamURL(string key) {
+                var ret = custom.Params.Get(key)?.Trim();
+                if (!ret.IsWebUrl()) throw new Exception($"Parameter {key} should be an URL");
+                return ret;
+            }
+
+            string ParamRequire(string key) {
+                var ret = custom.Params.Get(key)?.Trim();
+                if (string.IsNullOrEmpty(ret)) throw new Exception($"Parameter {key} is required");
+                return ret;
+            }
+
+            string ParamOpt(string key) {
+                return custom.Params.Get(key)?.Trim().Or(null);
+            }
+
             try {
                 switch (custom.Path.ToLowerInvariant()) {
                     case "batch":
@@ -186,7 +207,7 @@ namespace AcManager.Tools {
                         return ArgumentHandleResult.Ignore; // TODO?
 
                     case "loadgooglespreadsheetslocale":
-                        return await ProcessGoogleSpreadsheetsLocale(custom.Params.Get(@"id"), custom.Params.Get(@"locale"), custom.Params.GetFlag(@"around"));
+                        return await ProcessGoogleSpreadsheetsLocale(ParamRequire(@"id"), ParamRequire(@"locale"), custom.Params.GetFlag(@"around"));
 
                     case "install":
                         var urls = custom.Params.GetValues(@"url") ?? new string[0];
@@ -204,30 +225,62 @@ namespace AcManager.Tools {
                         return await ProcessImportWebsite(custom.Params.GetValues(@"data") ?? new string[0]);
 
                     case "cup/registry":
-                        return await ProcessCupRegistry(custom.Params.Get(@"url"));
+                        return await ProcessCupRegistry(ParamURL(@"url"));
 
                     case "live":
-                        return await ProcessLiveService(custom.Params.Get(@"url"), custom.Params.Get(@"name"), custom.Params.Get(@"color"));
+                        return await ProcessLiveService(ParamURL(@"url"), ParamRequire(@"name"), ParamOpt(@"color"));
+
+                    case "lobby":
+                        return await ProcessOnlineLobby(ParamURL(@"url"), ParamRequire(@"name"), ParamOpt(@"description"), ParamOpt(@"flags"));
 
                     case "csp/install":
-                        return await ProcessCspInstall(custom.Params.Get(@"version"));
+                        return await ProcessCspInstall(ParamRequire(@"version"));
+
+                    case "csp/preview":
+                        return await ProcessShadersPatchBuild(ParamURL(@"url"), ParamRequire(@"version"), 
+                                custom.Params.Get(@"build").As(0));
 
                     case "replay":
-                        return await ProcessReplay(custom.Params.Get(@"url"), custom.Params.Get(@"uncompressed") == null);
+                        return await ProcessReplay(ParamURL(@"url"), ParamOpt(@"uncompressed") == null);
 
                     case "rsr":
-                        return await ProcessRsrEvent(custom.Params.Get(@"id"));
+                        return await ProcessRsrEvent(ParamRequire(@"id"));
 
                     case "rsr/setup":
-                        return await ProcessRsrSetup(custom.Params.Get(@"id"));
+                        return await ProcessRsrSetup(ParamRequire(@"id"));
 
                     case "thesetupmarket/setup":
-                        return await ProcessTheSetupMarketSetup(custom.Params.Get(@"id"));
+                        return await ProcessTheSetupMarketSetup(ParamRequire(@"id"));
 
                     case "tool/update-car-preview":
-                        var car = await CarsManager.Instance.GetByIdAsync(custom.Params.Get(@"car"));
+                        var car = await CarsManager.Instance.GetByIdAsync(ParamRequire(@"car"));
                         if (car == null) return ArgumentHandleResult.Failed;
                         await new ToUpdatePreview(car, custom.Params.GetValues(@"skin")).Run(presetFilename: custom.Params.Get(@"preset"));
+                        return ArgumentHandleResult.Successful;
+
+                    case "tool/script":
+                        if (!OptionAllowDataScripts) {
+                            throw new Exception("Data scripts can’t run without “--allow-data-scripts” argument");
+                        }
+                        var process = ProcessExtension.Start(FilesStorage.Instance.GetContentFile("Scripts", 
+                                        FileUtils.EnsureFileNameIsValid(ParamRequire("script"), false) + ".bat").Filename,
+                                JsonConvert.DeserializeObject<string[]>(ParamRequire("args")), new ProcessStartInfo {
+                                    RedirectStandardError = true,
+                                    RedirectStandardOutput = true,
+                                    WindowStyle = ProcessWindowStyle.Hidden,
+                                    CreateNoWindow = true,
+                                    UseShellExecute = false
+                                });
+                        var outputStringBuilder = new StringBuilder();
+                        process.OutputDataReceived += (sender, eventArgs) => outputStringBuilder.AppendLine(eventArgs.Data);
+                        process.ErrorDataReceived += (sender, eventArgs) => outputStringBuilder.AppendLine(eventArgs.Data);
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+                        process.WaitForExitAsync().ContinueWithInMainThread(_ => {
+                            var r = outputStringBuilder.ToString().Trim();
+                            if (string.IsNullOrEmpty(r)) return;
+                            ModernDialog.ShowMessage(r, "Script result", MessageBoxButton.OK);
+                        }).Ignore();
                         return ArgumentHandleResult.Successful;
 
                     case "shared":
@@ -300,7 +353,7 @@ namespace AcManager.Tools {
             }
         }
 
-        private static async Task<ArgumentHandleResult> ProcessCupRegistry(string url) {
+        private static async Task<ArgumentHandleResult> ProcessCupRegistry([NotNull] string url) {
             await Task.Delay(0);
 
             if (SettingsHolder.Content.CupRegistriesList.Contains(url)) {
@@ -323,7 +376,7 @@ namespace AcManager.Tools {
             await Task.Delay(0);
 
             if (SettingsHolder.Live.UserEntries.Any(x => x.Url == url)) {
-                Toast.Show("Nothing to import", "This CUP registry is already added");
+                Toast.Show("Nothing to import", "This live service is already added");
                 return ArgumentHandleResult.Successful;
             }
 
@@ -332,7 +385,31 @@ namespace AcManager.Tools {
                     "New live service", MessageBoxButton.YesNo) == MessageBoxResult.Yes) {
                 SettingsHolder.Live.UserEntries =
                         SettingsHolder.Live.UserEntries.Append(new SettingsHolder.LiveSettings.LiveServiceEntry(url, name, color)).ToList();
-                Toast.Show("New live service", "New live service has been added");
+                Toast.Show("New Live Service", "New live service has been added");
+                return ArgumentHandleResult.Successful;
+            }
+
+            return ArgumentHandleResult.Failed;
+        }
+
+        private static async Task<ArgumentHandleResult> ProcessOnlineLobby(string url, string name, [CanBeNull] string description, [CanBeNull] string flags) {
+            await Task.Delay(0);
+
+            ThirdPartyOnlineSourcesManager.Instance.Initialize();
+            if (ThirdPartyOnlineSourcesManager.Instance.List.Any(x => x.Url == url)) {
+                Toast.Show("Nothing to import", "This online lobby is already added");
+                return ArgumentHandleResult.Successful;
+            }
+
+            if (ModernDialog.ShowMessage(
+                    $"Do you want to add “{url}” as a new online lobby server?",
+                    "New online lobby server", MessageBoxButton.YesNo) == MessageBoxResult.Yes) {
+                ThirdPartyOnlineSourcesManager.Instance.List.Add(new ThirdPartyOnlineSource(false, url, name) {
+                    Description = description,
+                    Flags = flags
+                });
+                ThirdPartyOnlineSourcesManager.Instance.SaveUserLobbies();
+                Toast.Show("New Online Lobby", "New online lobby server has been added");
                 return ArgumentHandleResult.Successful;
             }
 
@@ -340,6 +417,12 @@ namespace AcManager.Tools {
         }
 
         private static async Task<ArgumentHandleResult> ProcessCspInstall(string versionString) {
+            if (ModernDialog.ShowMessage(
+                    $"Do you want to install v{versionString} of Custom Shaders Patch?",
+                    "CSP Installation", MessageBoxButton.YesNo) != MessageBoxResult.Yes) {
+                return ArgumentHandleResult.Failed;
+            }
+            
             using (var waiting = new WaitingDialog("Installing CSP…")) {
                 var versions = await PatchVersionInfo.GetPatchManifestAsync(null, waiting.CancellationToken);
                 if (waiting.CancellationToken.IsCancellationRequested) return ArgumentHandleResult.Failed;
@@ -365,12 +448,52 @@ namespace AcManager.Tools {
 
                 using (var model = PatchSettingsModel.Create()) {
                     var item = model.Configs?
-                            .FirstOrDefault(x => x.FileNameWithoutExtension == "general")?.Sections.GetByIdOrDefault("BASIC")?
+                            .FirstOrDefault(x => x.FileNameWithoutExtension == "general")?.SectionsOwn.GetByIdOrDefault("BASIC")?
                             .GetByIdOrDefault("ENABLED");
                     if (item != null) {
                         item.Value = @"1";
                     }
                 }
+                
+                Toast.Show("CSP Updated", $"CSP has been updated to v{versionString}");
+            }
+            return ArgumentHandleResult.Successful;
+        }
+
+        private static async Task<ArgumentHandleResult> ProcessShadersPatchBuild(string url, string version, int build) {
+            if (build <= 0) {
+                throw new Exception("Invalid build ID");
+            }
+            if (url.GetDomainNameFromUrl() != @"files.acstuff.ru"
+                && url.GetDomainNameFromUrl() != @"files.acstuff.club") {
+                throw new Exception("This URL is not supported");
+            }
+            if (ModernDialog.ShowMessage(
+                    $"Do you want to install a preview build v{version} of Custom Shaders Patch?",
+                    "CSP Installation", MessageBoxButton.YesNo) != MessageBoxResult.Yes) {
+                return ArgumentHandleResult.Failed;
+            }
+            using (var waiting = new WaitingDialog("Installing CSP preview…")) {
+                PatchVersionInfo.RegisterPreviewBuild(build, version, url);
+                var versions = await PatchVersionInfo.GetPatchManifestAsync(null, waiting.CancellationToken);
+                if (waiting.CancellationToken.IsCancellationRequested) return ArgumentHandleResult.Failed;
+
+                var info = versions.FirstOrDefault(x => x.Version == version);
+                if (info == null) {
+                    throw new Exception($"Wrong parameter: version={version}, no such version");
+                }
+
+                await PatchUpdater.Instance.InstallAsync(info, waiting.CancellationToken);
+                using (var model = PatchSettingsModel.Create()) {
+                    var item = model.Configs?
+                            .FirstOrDefault(x => x.FileNameWithoutExtension == "general")?.SectionsOwn.GetByIdOrDefault("BASIC")?
+                            .GetByIdOrDefault("ENABLED");
+                    if (item != null) {
+                        item.Value = @"1";
+                    }
+                }
+                
+                Toast.Show("CSP Updated", $"CSP has been updated to v{version}");
             }
             return ArgumentHandleResult.Successful;
         }

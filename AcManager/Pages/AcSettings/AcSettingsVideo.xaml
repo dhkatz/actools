@@ -1,9 +1,9 @@
 ﻿<UserControl x:Class="AcManager.Pages.AcSettings.AcSettingsVideo" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mui="http://firstfloorsoftware.com/ModernUI"
-    xmlns:acset="clr-namespace:AcManager.Pages.AcSettings" xmlns:g="clr-namespace:AcManager" xmlns:t="http://acstuff.ru/app/tools"
+    xmlns:acset="clr-namespace:AcManager.Pages.AcSettings" xmlns:g="clr-namespace:AcManager" xmlns:t="http://acstuff.club/app/tools"
     xmlns:hel="clr-namespace:AcManager.Tools.Helpers.AcSettings;assembly=AcManager.Tools" xmlns:set="clr-namespace:AcManager.Pages.Settings"
-    xmlns:c="http://acstuff.ru/app/controls" mc:Ignorable="d" FocusVisualStyle="{x:Null}" d:DataContext="{d:DesignInstance acset:AcSettingsVideo+ViewModel}">
+    xmlns:c="http://acstuff.club/app/controls" mc:Ignorable="d" FocusVisualStyle="{x:Null}" d:DataContext="{d:DesignInstance acset:AcSettingsVideo+ViewModel}">
   <UserControl.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
@@ -136,7 +136,7 @@
             <Slider Minimum="30" Maximum="240" Value="{Binding Video.FramerateLimit}" TickFrequency="21" TickPlacement="BottomRight" />
           </DockPanel>
 
-          <DockPanel c:FeatureIsAvailable.Feature="{x:Static t:PatchHelper.FeatureWindowPosition}" mui:NewMarkService.New="True"
+          <DockPanel c:FeatureIsAvailable.Feature="{x:Static t:PatchHelper.FeatureWindowPosition}"
               IsEnabled="{Binding Video.Fullscreen, Converter={StaticResource InvertBooleanConverter}}"
               ToolTip="Requires Custom Shaders Patch, available only without fullscreen mode" ToolTipService.ShowOnDisabled="True">
             <Label Content="Show on screen:" />

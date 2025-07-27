@@ -13,4 +13,6 @@ namespace AcManager.Tools.AcPlugins.CspCommands {
             return 3;
         }
     }
+    
+    // Response testing signature.
 }

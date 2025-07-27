@@ -18,7 +18,8 @@ namespace AcManager.Tools.Helpers {
 
             public string CupRegistries {
                 get => _cupRegistries ?? (_cupRegistries =
-                        ValuesStorage.Get("Settings.ContentSettings.CupRegistries", "https://acstuff.ru/cup/"));
+                        ValuesStorage.Get("Settings.ContentSettings.CupRegistries", "https://acstuff.club/cup/")
+                                .Replace(@"//acstuff.ru/cup", @"//acstuff.club/cup"));
                 set {
                     value = value.Trim();
                     if (Equals(value, _cupRegistries)) return;
@@ -243,6 +244,12 @@ namespace AcManager.Tools.Helpers {
                 new SettingEntry(0, "Weight-to-power (kg/cv)"),
                 new SettingEntry(1, "Power-to-weight (hp/kg)"),
                 new SettingEntry(2, "Power-to-weight (hp/tonne)"),
+            };
+
+            public SettingEntryStored CarsLODGeneratorTool { get; } = new SettingEntryStored("/Settings.ContentSettings.CarsLODGeneratorTool") {
+                new SettingEntry(0, "Polygon Cruncher"),
+                new SettingEntry(1, "Simplygon"),
+                // new SettingEntry(2, "MeshLab (requires Python and PyMeshLab installed)"),
             };
 
             private bool? _changeBrandIconAutomatically;
@@ -486,6 +493,18 @@ namespace AcManager.Tools.Helpers {
             }
 
             public IStorage MegaAuthenticationStorage { get; } = new Substorage(AuthenticationStorage.GeneralStorage, "Mega:");
+
+            private bool? _compressFilesInBackground;
+
+            public bool CompressFilesInBackground {
+                get => _compressFilesInBackground ?? (_compressFilesInBackground = ValuesStorage.Get("Settings.ContentSettings.CompressFilesInBackground", false)).Value;
+                set {
+                    if (Equals(value, _compressFilesInBackground)) return;
+                    _compressFilesInBackground = value;
+                    ValuesStorage.Set("Settings.ContentSettings.CompressFilesInBackground", value);
+                    OnPropertyChanged();
+                }
+            }
         }
 
         private static ContentSettings _content;

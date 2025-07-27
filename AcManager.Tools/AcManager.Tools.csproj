@@ -15,6 +15,7 @@
     <ActualPlatform>$(Platform)</ActualPlatform>
     <ActualPlatform Condition="'$(ActualPlatform)' == 'AnyCPU'">x86</ActualPlatform>
     <LangVersion>7.1</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
@@ -24,7 +25,6 @@
     <PlatformTarget>x86</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <OutputPath>bin\x86\Release\</OutputPath>
@@ -158,9 +158,12 @@
     <Compile Include="AcManagersNew\FileAcManager.cs" />
     <Compile Include="AcManagersNew\IAcManagerNew.cs" />
     <Compile Include="AcManagersNew\IAcManagerScanWrapper.cs" />
+    <Compile Include="AcManagersNew\IAcWrapperLoader.cs" />
     <Compile Include="AcManagersNew\IFileAcManager.cs" />
     <Compile Include="AcManagersNew\IgnoringHolder.cs" />
     <Compile Include="AcManagersNew\IIgnorer.cs" />
+    <Compile Include="AcManagersNew\WrappedValueChangedEventArgs.cs" />
+    <Compile Include="AcManagersNew\WrappedValueChangedEventHandler.cs" />
     <Compile Include="AcObjectsNew\AcCommonObject.cs" />
     <Compile Include="AcObjectsNew\AcCommonObject.Pack.cs" />
     <Compile Include="AcObjectsNew\AcCommonSingleFileObject.cs" />
@@ -181,10 +184,13 @@
     <Compile Include="AcPlugins\AcServerPluginManagerSettings.cs" />
     <Compile Include="AcPlugins\CspCommands\CommandHandshakeIn.cs" />
     <Compile Include="AcPlugins\CspCommands\CommandHandshakeOut.cs" />
+    <Compile Include="AcPlugins\CspCommands\CommandOverrideBanMessage.cs" />
     <Compile Include="AcPlugins\CspCommands\CommandSignatureIn.cs" />
     <Compile Include="AcPlugins\CspCommands\CommandSignatureOut.cs" />
+    <Compile Include="AcPlugins\CspCommands\CommandSignatureVerificationIn.cs" />
+    <Compile Include="AcPlugins\CspCommands\CommandSignatureVerificationOut.cs" />
     <Compile Include="AcPlugins\CspCommands\CommandWeatherSetV1.cs" />
-    <Compile Include="AcPlugins\CspCommands\CommandWeatherSetV2.cs" />
+    <Compile Include="AcPlugins\CspCommands\CommandWeatherSetV3.cs" />
     <Compile Include="AcPlugins\CspCommands\CommandWeatherType.cs" />
     <Compile Include="AcPlugins\CspCommands\CspCommandsUtils.cs" />
     <Compile Include="AcPlugins\CspCommands\ICspCommand.cs" />
@@ -277,6 +283,7 @@
     <Compile Include="ContentInstallation\Installators\IAdditionalContentInstallator.cs" />
     <Compile Include="ContentInstallation\Installators\IFileInfo.cs" />
     <Compile Include="ContentInstallation\Installators\InstallationDetails.cs" />
+    <Compile Include="ContentInstallation\NewFilesReporter.cs" />
     <Compile Include="Data\BaseUpdater.cs" />
     <Compile Include="Data\DataUpdater.cs" />
     <Compile Include="Data\DataProvider.cs" />
@@ -294,6 +301,7 @@
     <Compile Include="Data\KunosLauncherDataWatcher.cs" />
     <Compile Include="Data\AuthenticationStorage.cs" />
     <Compile Include="Data\NameNationality.cs" />
+    <Compile Include="Data\NewRaceModeData.cs" />
     <Compile Include="Data\PatchBackgroundsDataUpdater.cs" />
     <Compile Include="Data\PatchBaseDataUpdater.cs" />
     <Compile Include="Data\PatchCarsDataUpdater.cs" />
@@ -304,11 +312,13 @@
     <Compile Include="Data\PatchTracksVaoDataUpdater.cs" />
     <Compile Include="Data\PatchUpdater.cs" />
     <Compile Include="Data\PatchVersionInfo.cs" />
+    <Compile Include="Data\TagsComparer.cs" />
     <Compile Include="Data\TzConvert\DataLoader.cs" />
     <Compile Include="Data\TzConvert\TZConvert.cs" />
     <Compile Include="Data\UserChampionshipProgressEntry.cs" />
     <Compile Include="Data\UserChampionshipsProgress.cs" />
     <Compile Include="Data\WeatherDescription.cs" />
+    <Compile Include="Data\WeatherFxControllerData.cs" />
     <Compile Include="Data\WeatherType.cs" />
     <Compile Include="Data\WeatherTypeExtension.cs" />
     <Compile Include="Data\WeatherTypeWrapped.cs" />
@@ -360,6 +370,7 @@
     <Compile Include="GameProperties\LiveServiceMark.cs" />
     <Compile Include="GameProperties\ModeSpecificPresetsHelper.cs" />
     <Compile Include="GameProperties\NationCodeProvider.cs" />
+    <Compile Include="GameProperties\NewModeDetails.cs" />
     <Compile Include="GameProperties\RhmService.cs" />
     <Compile Include="GameProperties\TrackDetails.cs" />
     <Compile Include="GameProperties\WeatherDetails.cs" />
@@ -497,7 +508,6 @@
     <Compile Include="Helpers\Api\Rsr\RsrApiProvider.cs" />
     <Compile Include="Helpers\Api\SteamWebProvider.cs" />
     <Compile Include="Helpers\CarDataComparing.cs" />
-    <Compile Include="Helpers\ChildProcessTracker.cs" />
     <Compile Include="Helpers\CookieAwareWebClient.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -571,6 +581,7 @@
     <Compile Include="Managers\LuaAppsManager.cs" />
     <Compile Include="Managers\Online\FileBasedOnlineSources.cs" />
     <Compile Include="Managers\Online\LanOnlineSource.cs" />
+    <Compile Include="Managers\Online\MinoratingOnlineSource.cs" />
     <Compile Include="Managers\Online\OnlineManager.Sources.cs" />
     <Compile Include="Managers\Online\OnlineManager.Pinging.cs" />
     <Compile Include="Managers\Online\OnlineManager.cs" />
@@ -589,6 +600,8 @@
     <Compile Include="Managers\Online\ServerEntry.Origins.cs" />
     <Compile Include="Managers\Online\SourcesPack.cs" />
     <Compile Include="IJsonSerializable.cs" />
+    <Compile Include="Managers\Online\ThirdPartyOnlineSource.cs" />
+    <Compile Include="Managers\Online\ThirdPartyOnlineSourcesManager.cs" />
     <Compile Include="Managers\Plugins\AssemblyResolvingWrapper.cs" />
     <Compile Include="Managers\Plugins\KnownPlugins.cs" />
     <Compile Include="Managers\Plugins\PluginEventArgs.cs" />
@@ -626,11 +639,13 @@
     <Compile Include="Objects\IPythonAppConfigValue.cs" />
     <Compile Include="Objects\IPythonAppConfigValueProvider.cs" />
     <Compile Include="Objects\LuaAppObject.cs" />
+    <Compile Include="Objects\PpFilterObject.Cup.cs" />
     <Compile Include="Objects\PythonAppConfig.cs" />
     <Compile Include="Objects\PythonAppConfigBoolValue.cs" />
     <Compile Include="Objects\PythonAppConfigFileValue.cs" />
     <Compile Include="Objects\PythonAppConfigKeyValue.cs" />
     <Compile Include="Objects\PythonAppConfigNumberValue.cs" />
+    <Compile Include="Objects\PythonAppConfigOptionsTemplateSelector.cs" />
     <Compile Include="Objects\PythonAppConfigOptionsValue.cs" />
     <Compile Include="Objects\PythonAppConfigParams.cs" />
     <Compile Include="Objects\PythonAppConfigPluginInfo.cs" />
@@ -649,6 +664,7 @@
     <Compile Include="Objects\ServerPresetObject.LegalTyres.cs" />
     <Compile Include="Objects\ServerPresetObject.LiveConditions.cs" />
     <Compile Include="Objects\ServerPresetObject.Setups.cs" />
+    <Compile Include="Objects\ShowroomObject.Cup.cs" />
     <Compile Include="Objects\TrackObject.Extra.cs" />
     <Compile Include="Objects\TrackObject.Skins.cs" />
     <Compile Include="Objects\CarObject.Stats.cs" />
@@ -724,6 +740,7 @@
     <Compile Include="ServerPlugins\DynamicConditionsV1ServerPlugin.cs" />
     <Compile Include="ServerPlugins\DynamicConditionsV2ServerPlugin.cs" />
     <Compile Include="ServerPlugins\HandshakePlugin.cs" />
+    <Compile Include="ServerPlugins\HandshakeVerificationPlugin.cs" />
     <Compile Include="ServerPlugins\LiveConditionsServerPlugin.cs" />
     <Compile Include="ServerPlugins\ServerGuidsStorage.cs" />
     <Compile Include="SharedMemory\AcFlagType.cs" />
@@ -735,6 +752,7 @@
     <Compile Include="SharedMemory\AcSharedPhysics.cs" />
     <Compile Include="SharedMemory\AcSharedEventArgs.cs" />
     <Compile Include="SharedMemory\AcSharedStaticInfo.cs" />
+    <Compile Include="SharedMemory\BetterMemoryMappedAccessor.cs" />
     <Compile Include="SharedMemory\StructExtension.cs" />
     <Compile Include="Starters\AppIdStarter.cs" />
     <Compile Include="Starters\DeveloperStarter.cs" />

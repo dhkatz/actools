@@ -169,8 +169,8 @@
       <Private>True</Private>
       <EmbedInteropTypes>false</EmbedInteropTypes>
     </Reference>
-    <Reference Include="CefSharp, Version=91.1.211.0, Culture=neutral, processorArchitecture=$(ActualPlatform)">
-      <HintPath>..\Libraries\CefSharp-91.1.211-$(ActualPlatform)\CefSharp.dll</HintPath>
+    <Reference Include="CefSharp, Version=114.2.120.0, Culture=neutral, processorArchitecture=$(ActualPlatform)">
+      <HintPath>..\Libraries\CefSharp-114.2.120-$(ActualPlatform)\CefSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="xxHashSharp, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
@@ -400,6 +400,13 @@
     <Compile Include="Pages\ContentTools\BatchPreviewsUpdater.xaml.cs">
       <DependentUpon>BatchPreviewsUpdater.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pages\ContentTools\Bc7Encoder.cs" />
+    <Compile Include="Pages\ContentTools\Bc7Upgrader.xaml.cs">
+      <DependentUpon>Bc7Upgrader.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\ContentTools\CspTrackPatchesOptimizer.xaml.cs">
+      <DependentUpon>CspTrackPatchesOptimizer.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\ContentTools\FilesCompressor.xaml.cs">
       <DependentUpon>FilesCompressor.xaml</DependentUpon>
     </Compile>
@@ -407,6 +414,9 @@
       <DependentUpon>CupList.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\ContentTools\ContentTool.cs" />
+    <Compile Include="Pages\ContentTools\KsAnimSwitchGenerator.xaml.cs">
+      <DependentUpon>KsAnimSwitchGenerator.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\ContentTools\TreeModelConverter.xaml.cs">
       <DependentUpon>TreeModelConverter.xaml</DependentUpon>
     </Compile>
@@ -482,9 +492,14 @@
     <Compile Include="Pages\Drive\GridFinder.xaml.cs">
       <DependentUpon>GridFinder.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pages\Drive\IRaceGridModeViewModel.cs" />
     <Compile Include="Pages\Drive\JsGenericProxy.cs" />
     <Compile Include="Pages\Drive\Online.QuickFilters.cs" />
     <Compile Include="Pages\Drive\OnlineServer.AutoJoin.cs" />
+    <Compile Include="Pages\Drive\QuickDriveSingleModeViewModel.cs" />
+    <Compile Include="Pages\Drive\QuickDrive_Custom.xaml.cs">
+      <DependentUpon>QuickDrive_Custom.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\Drive\RaceU.xaml.cs">
       <DependentUpon>RaceU.xaml</DependentUpon>
     </Compile>
@@ -494,12 +509,6 @@
     </Compile>
     <Compile Include="Pages\Drive\TempSurvey.xaml.cs">
       <DependentUpon>TempSurvey.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Pages\Drive\TrackTitan.xaml.cs">
-      <DependentUpon>TrackTitan.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Pages\Drive\UnitedRacingData.xaml.cs">
-      <DependentUpon>UnitedRacingData.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\Drive\UserChampionships_SelectedPage.xaml.cs">
       <DependentUpon>UserChampionships_SelectedPage.xaml</DependentUpon>
@@ -843,6 +852,10 @@
     <Compile Include="Tools\GameSessionNameProvider.cs" />
     <Compile Include="Tools\LargeFileUploaderParams.cs" />
     <Compile Include="Tools\LiveryIconEditor.cs" />
+    <Compile Include="Tools\LodsTools\MeshLabToolDetails.cs" />
+    <Compile Include="Tools\LodsTools\PolygonCruncherToolDetails.cs" />
+    <Compile Include="Tools\LodsTools\ILodsToolDetails.cs" />
+    <Compile Include="Tools\LodsTools\SimplygonToolDetails.cs" />
     <Compile Include="Tools\NeutralColorGradingLut.cs" />
     <Compile Include="Tools\KeyboardListener.cs" />
     <Compile Include="Tools\QuickDriveButtonModel.cs" />
@@ -1122,6 +1135,8 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Pages\ContentTools\Bc7Upgrader.xaml" />
+    <Page Include="Pages\ContentTools\CspTrackPatchesOptimizer.xaml" />
     <Page Include="Pages\ContentTools\FilesCompressor.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -1130,6 +1145,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Pages\ContentTools\KsAnimSwitchGenerator.xaml" />
     <Page Include="Pages\ContentTools\TreeModelConverter.xaml" />
     <Page Include="Pages\ContentTools\Uv2ModelConverter.xaml" />
     <Page Include="Pages\Dialogs\AcErrorSolutionSelector.xaml">
@@ -1230,14 +1246,13 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\Drive\GridFinder.xaml" />
+    <Page Include="Pages\Drive\QuickDrive_Custom.xaml" />
     <Page Include="Pages\Drive\RaceU.xaml" />
     <Page Include="Pages\Drive\Srs2.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\Drive\TempSurvey.xaml" />
-    <Page Include="Pages\Drive\TrackTitan.xaml" />
-    <Page Include="Pages\Drive\UnitedRacingData.xaml" />
     <Page Include="Pages\Drive\UserChampionships_SelectedPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -1922,7 +1937,6 @@
     <EmbeddedResource Include="App.config">
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <None Include="About\ImportantTips\Browser Extension.txt" />
     <None Include="About\ImportantTips\Custom Showroom Best Antialiasing.txt" />
     <None Include="About\ImportantTips\Custom Showroom Color Grading.txt" />
     <None Include="About\ImportantTips\Custom Showroom Shadows Baking.txt" />
@@ -2286,7 +2300,6 @@
     <Resource Include="Assets\Icons\TrayIconWin8.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="About\ImportantTips\Recommended Mods.txt" />
     <None Include="About\ImportantTips\Custom Showroom Big Screenshots.txt" />
     <None Include="About\ImportantTips\Custom Showroom Shortcuts.txt" />
     <Content Include="About\Licenses\7ZipExtra\7ZipExtra.txt" />

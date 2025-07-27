@@ -1,5 +1,5 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:c="clr-namespace:AcManager.Controls" xmlns:mui="http://firstfloorsoftware.com/ModernUI" xmlns:t="http://acstuff.ru/app/tools"
+    xmlns:c="clr-namespace:AcManager.Controls" xmlns:mui="http://firstfloorsoftware.com/ModernUI" xmlns:t="http://acstuff.club/app/tools"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
   <ResourceDictionary.MergedDictionaries>
     <mui:SharedResourceDictionary Source="/FirstFloor.ModernUI;component/Assets/Converters.xaml" />
@@ -128,7 +128,7 @@
                 <mui:Cell DockPanel.Dock="Top" MaxWidth="1022">
                   <mui:BetterImage x:Name="PART_PreviewImage" Filename="{Binding SelectedSkin.PreviewImage, RelativeSource={RelativeSource TemplatedParent}}"
                       Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource MultiplyConverter}, ConverterParameter=0.5626223}"
-                      MaxWidth="1022" />
+                      MaxWidth="1022" c:ContextMenus.Car="{Binding Car, RelativeSource={RelativeSource TemplatedParent}}" />
                   <ListBox ItemsSource="{Binding Car.EnabledSkinsListView, RelativeSource={RelativeSource TemplatedParent}}"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" Margin="4"
                       IsSynchronizedWithCurrentItem="False" SelectedItem="{Binding SelectedSkin, RelativeSource={RelativeSource TemplatedParent}}"

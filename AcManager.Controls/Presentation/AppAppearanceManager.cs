@@ -844,6 +844,20 @@ namespace AcManager.Controls.Presentation {
             get => _showMainWindowBackButton.Value;
             set => Apply(value, _showMainWindowBackButton);
         }
+
+        private readonly StoredValue<bool> _showSelectionDialogToolTips = Stored.Get("AppAppearanceManager.ShowSelectionDialogToolTips", true);
+
+        public bool ShowSelectionDialogToolTips {
+            get => _showSelectionDialogToolTips.Value;
+            set => Apply(value, _showSelectionDialogToolTips);
+        }
+
+        private readonly StoredValue<bool> _showContentToolTips = Stored.Get("AppAppearanceManager.ShowContentToolTips", true);
+
+        public bool ShowContentToolTips {
+            get => _showContentToolTips.Value;
+            set => Apply(value, _showContentToolTips);
+        }
         #endregion
     }
 }

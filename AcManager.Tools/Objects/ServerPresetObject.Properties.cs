@@ -129,6 +129,17 @@ namespace AcManager.Tools.Objects {
             });
         }
 
+        private bool _cspIcePhysics;
+
+        public bool CspIcePhysics {
+            get => _cspIcePhysics;
+            set => Apply(value, ref _cspIcePhysics, () => {
+                if (Loaded) {
+                    Changed = true;
+                }
+            });
+        }
+
         private string _cspExtraConfig;
 
         public string CspExtraConfig {
@@ -272,6 +283,20 @@ namespace AcManager.Tools.Objects {
             set {
                 if (Equals(value, _showOnLobby)) return;
                 _showOnLobby = value;
+                if (Loaded) {
+                    OnPropertyChanged();
+                    Changed = true;
+                }
+            }
+        }
+
+        private bool _showOnCmLobby;
+
+        public bool ShowOnCmLobby {
+            get => _showOnCmLobby;
+            set {
+                if (Equals(value, _showOnCmLobby)) return;
+                _showOnCmLobby = value;
                 if (Loaded) {
                     OnPropertyChanged();
                     Changed = true;
