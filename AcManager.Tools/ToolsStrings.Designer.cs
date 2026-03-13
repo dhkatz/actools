@@ -1878,7 +1878,7 @@ namespace AcManager.Tools {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} (Recommended).
+        ///   Looks up a localized string similar to {0} (recommended).
         /// </summary>
         public static string Common_Recommended {
             get {
@@ -2774,15 +2774,6 @@ namespace AcManager.Tools {
         public static string Drive_GridType {
             get {
                 return ResourceManager.GetString("Drive_GridType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to New Modes (added by CSP).
-        /// </summary>
-        public static string ettings_Drive_SessionClass_NewModes {
-            get {
-                return ResourceManager.GetString("ettings_Drive_SessionClass_NewModes", resourceCulture);
             }
         }
         
@@ -4108,6 +4099,15 @@ namespace AcManager.Tools {
         public static string Settings_Drive_SessionClass_Live {
             get {
                 return ResourceManager.GetString("Settings_Drive_SessionClass_Live", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Modes (added by CSP).
+        /// </summary>
+        public static string Settings_Drive_SessionClass_NewModes {
+            get {
+                return ResourceManager.GetString("Settings_Drive_SessionClass_NewModes", resourceCulture);
             }
         }
         

@@ -213,6 +213,18 @@ namespace FirstFloor.ModernUI.Windows.Controls {
             set => SetValue(IsTitleVisibleProperty, value);
         }
 
+        public static readonly DependencyProperty MaxRootWidthProperty = DependencyProperty.Register(nameof(MaxRootWidth), typeof(double),
+                typeof(ModernWindow), new PropertyMetadata(double.PositiveInfinity, (o, e) => {
+                    ((ModernWindow)o)._maxRootWidth = (double)e.NewValue;
+                }));
+
+        private double _maxRootWidth = double.PositiveInfinity;
+
+        public double MaxRootWidth {
+            get => _maxRootWidth;
+            set => SetValue(MaxRootWidthProperty, value);
+        }
+
         public static readonly DependencyProperty IsRootMarginEvenProperty = DependencyProperty.Register(nameof(IsRootMarginEven), typeof(bool),
                 typeof(ModernWindow), new PropertyMetadata(false, (o, e) => {
                     ((ModernWindow)o)._isRootMarginEven = (bool)e.NewValue;

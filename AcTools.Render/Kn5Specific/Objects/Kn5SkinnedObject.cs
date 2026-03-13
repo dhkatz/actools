@@ -10,6 +10,7 @@ using AcTools.Render.Base.Objects;
 using AcTools.Render.Base.Structs;
 using AcTools.Render.Base.Utils;
 using AcTools.Render.Kn5Specific.Materials;
+using AcTools.Render.Utils;
 using AcTools.Utils;
 using AcTools.Utils.Helpers;
 using JetBrains.Annotations;
@@ -17,7 +18,7 @@ using SlimDX;
 
 namespace AcTools.Render.Kn5Specific.Objects {
     public sealed class Kn5SkinnedObject : TrianglesRenderableObject<InputLayouts.VerticePNTGW4B>, IKn5RenderableObject {
-        public readonly bool IsCastingShadows;
+        public bool IsCastingShadows;
 
         public Kn5Node OriginalNode { get; }
 
@@ -54,7 +55,7 @@ namespace AcTools.Render.Kn5Specific.Objects {
         private void UpdateNodes() {
             if (_bonesNodes == null) return;
 
-            var fix = Matrix.Invert(ParentMatrix * ModelMatrixInverted);
+            var fix = (ParentMatrix * ModelMatrixInverted).Invert_v2();
             var bones = OriginalNode.Bones;
             for (var i = 0; i < bones.Length; i++) {
                 var node = _bonesNodes[i];
@@ -102,6 +103,10 @@ namespace AcTools.Render.Kn5Specific.Objects {
 
         public void SetTransparent(bool? isTransparent) {
             _isTransparent = isTransparent ?? OriginalNode.IsTransparent;
+        }
+
+        public void SetCastShadows(bool? castShadows) {
+            IsCastingShadows = castShadows ?? OriginalNode.CastShadows;
         }
 
         [CanBeNull]
