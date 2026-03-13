@@ -95,6 +95,16 @@
               Text="This section doesn’t affect actual AC server, it only allows you to quickly upload all necessary files (including executable) to a remote server via FTP." />
         </c:MessageBlock>
         <DockPanel>
+          <Label Content="Protocol:" />
+          <mui:BetterComboBox IsEditable="False" ItemsSource="{Binding FtpProtocols}" SelectedItem="{Binding SelectedObject.FtpProtocol}">
+            <mui:BetterComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Converter={StaticResource EnumToDescriptionConverter}}" />
+              </DataTemplate>
+            </mui:BetterComboBox.ItemTemplate>
+          </mui:BetterComboBox>
+        </DockPanel>
+        <DockPanel>
           <Label Content="Host:" />
           <mui:BetterTextBox Text="{Binding SelectedObject.FtpHost}" Placeholder="{x:Static t:ToolsStrings.Common_None}" />
         </DockPanel>
